@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PIKIT - Falling Pickaxe Mining Game</title>
+  <meta name="description" content="Real-time multiplayer falling pickaxe betting game. Watch, bet, and earn credits!">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/js/pikit.css">
+</head>
+<body>
+  <!-- Wallet Mount Point (RainbowKit React) -->
+  <div id="wallet-mount"></div>
+
+  <!-- Game Screen (visible immediately — spectator mode until wallet connect) -->
+  <div id="game-screen" class="screen active">
+    <!-- Full-screen Canvas -->
+    <div id="canvas-container">
+      <canvas id="game-canvas" role="img" aria-label="PIKIT game canvas - falling pickaxe mining game"></canvas>
+
+      <!-- Rare Block Spawn Alert Overlay (absolute top, above all HUD) -->
+      <div id="spawn-alert-overlay"></div>
+
+      <!-- Jackpot / Notification Overlay -->
+      <div id="jackpot-overlay"></div>
+
+      <!-- Top HUD Bar (always visible) -->
+      <div id="top-hud">
+        <div id="hud-left">
+          <button id="menu-btn" class="hud-btn" aria-label="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="hud-stat">
+            <span class="hud-label">Depth</span>
+            <span id="depth" class="hud-value">0m</span>
+          </div>
+          <div id="field-toggle" class="field-toggle">
+            <span class="field-toggle-label">Normal</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="field-toggle-checkbox">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="field-toggle-label hardcore-label">10x</span>
+          </div>
+        </div>
+        <div id="hud-right">
+          <button id="myinfo-btn" class="hud-btn-profile" aria-label="My Info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span id="my-balance" class="hud-balance-text">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- My Info Popup -->
+      <div id="myinfo-popup" class="myinfo-popup">
+        <div class="myinfo-header">
+          <span class="myinfo-title">My Profile</span>
+          <button id="myinfo-close-btn" class="myinfo-close" aria-label="Close profile">&times;</button>
+        </div>
+        <div class="myinfo-body">
+          <div class="myinfo-avatar">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="myinfo-name" id="myinfo-name">-</div>
+
+          <!-- Compact stats row (always visible) -->
+          <div class="myinfo-stats-compact">
+            <div class="myinfo-stat-mini">
+              <span class="myinfo-label">Balance</span>
+              <span class="myinfo-value gold" id="myinfo-balance">0</span>
+            </div>
+            <div class="myinfo-stat-mini">
+              <span class="myinfo-label">P&amp;L</span>
+              <span class="myinfo-value" id="myinfo-pnl">0</span>
+            </div>
+          </div>
+
+          <!-- Tab buttons -->
+          <div class="myinfo-tabs">
+            <button class="myinfo-tab active" data-tab="overview">Overview</button>
+            <button class="myinfo-tab" data-tab="deposit">Deposit</button>
+            <button class="myinfo-tab" data-tab="withdraw">Withdraw</button>
+          </div>
+
+          <!-- Tab content: Overview -->
+          <div class="myinfo-tab-content active" id="tab-overview">
+            <div class="myinfo-stats">
+              <div class="myinfo-stat-row">
+                <span class="myinfo-label">Balance</span>
+                <span class="myinfo-value gold" id="myinfo-balance-overview">0</span>
+              </div>
+              <div class="myinfo-stat-row">
+                <span class="myinfo-label">Total Earned</span>
+                <span class="myinfo-value" id="myinfo-earned">0</span>
+              </div>
+              <div class="myinfo-stat-row">
+                <span class="myinfo-label">Total Spent</span>
+                <span class="myinfo-value" id="myinfo-spent">0</span>
+              </div>
+              <div class="myinfo-stat-row highlight">
+                <span class="myinfo-label">Profit/Loss</span>
+                <span class="myinfo-value" id="myinfo-pnl-overview">0</span>
+              </div>
+            </div>
+            <div class="myinfo-actions">
+              <button id="myinfo-add-balance" class="btn btn-outline btn-sm">+ 10,000 Credits (Free)</button>
+              <button id="myinfo-logout" class="btn btn-destructive btn-sm">Logout</button>
+            </div>
+          </div>
+
+          <!-- Tab content: Deposit -->
+          <div class="myinfo-tab-content" id="tab-deposit">
+            <div class="deposit-info">
+              <div class="rate-badge">1 USDC = 10,000 Credits</div>
+              <div class="deposit-input-group">
+                <label class="deposit-label">USDC Amount (integer only)</label>
+                <div class="deposit-input-row">
+                  <button class="amount-btn minus" id="deposit-minus">−</button>
+                  <input type="number" id="deposit-amount" class="deposit-input" placeholder="0" min="1" step="1" value="">
+                  <button class="amount-btn plus" id="deposit-plus">+</button>
+                  <span class="deposit-unit">USDC</span>
+                </div>
+                <div class="deposit-preview" id="deposit-preview">You will receive: <strong>0</strong> credits</div>
+              </div>
+              <button id="deposit-btn" class="btn btn-primary btn-sm">Deposit</button>
+            </div>
+          </div>
+
+          <!-- Tab content: Withdraw -->
+          <div class="myinfo-tab-content" id="tab-withdraw">
+            <div class="withdraw-info">
+              <div class="rate-badge withdraw">10,500 Credits = 1 USDC</div>
+              <div class="deposit-input-group">
+                <label class="deposit-label">USDC Amount (integer only)</label>
+                <div class="deposit-input-row">
+                  <button class="amount-btn minus" id="withdraw-minus">−</button>
+                  <input type="number" id="withdraw-amount" class="deposit-input" placeholder="0" min="1" step="1" value="">
+                  <button class="amount-btn plus" id="withdraw-plus">+</button>
+                  <span class="deposit-unit">USDC</span>
+                </div>
+                <div class="deposit-preview" id="withdraw-preview">Will consume: <strong>0</strong> credits</div>
+              </div>
+              <button id="withdraw-btn" class="btn btn-primary btn-sm btn-withdraw">Withdraw</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Action Bar -->
+      <div id="bottom-bar">
+        <button id="shop-btn" class="action-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 01-8 0"></path>
+          </svg>
+          <span>Shop</span>
+        </button>
+        <button id="quest-btn" class="action-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+          </svg>
+          <span>Quest</span>
+        </button>
+        <button id="lb-btn" class="action-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20v-6M6 20V10M18 20V4"></path>
+          </svg>
+          <span>Rank</span>
+        </button>
+      </div>
+
+      <!-- Slide-out Quest Panel (from right) -->
+      <div id="quest-panel" class="slide-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Quests</h2>
+          <button id="quest-close-btn" class="close-btn" aria-label="Close quests">&times;</button>
+        </div>
+        <div class="panel-body">
+          <div class="card">
+            <div class="card-header">On-Chain Quest Completion</div>
+            <p style="font-size: 12px; color: var(--muted-foreground); padding: 0 12px 8px;">Complete quests and record on Sepolia blockchain</p>
+            <div id="quest-list" class="quest-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-out Shop Panel (from right) -->
+      <div id="shop-panel" class="slide-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Shop</h2>
+          <button id="shop-close-btn" class="close-btn" aria-label="Close shop">&times;</button>
+        </div>
+        <div class="panel-body">
+          <!-- Player Info -->
+          <div class="card" id="player-info-card">
+            <div class="card-header">My Info</div>
+            <div class="info-row">
+              <span class="label">Nickname</span>
+              <span id="my-name" class="value">-</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Balance</span>
+              <span id="my-balance-panel" class="value gold">0</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Total Earned</span>
+              <span id="my-earned" class="value">0</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Profit/Loss</span>
+              <span id="my-profit-panel" class="value">0</span>
+            </div>
+            <button id="add-balance-btn" class="btn btn-outline btn-sm">+ 10,000 Credits</button>
+          </div>
+
+          <!-- Pickaxe Shop -->
+          <div class="card">
+            <div class="card-header">⛏️ Pickaxes</div>
+            <div id="pickaxe-items" class="shop-grid"></div>
+          </div>
+
+          <!-- TNT Shop -->
+          <div class="card">
+            <div class="card-header">💣 TNT</div>
+            <div id="tnt-items" class="shop-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-out Menu Panel (from left) -->
+      <div id="menu-panel" class="slide-panel left">
+        <div class="panel-header">
+          <h2 class="panel-title">PIKIT</h2>
+          <button id="menu-close-btn" class="close-btn" aria-label="Close menu">&times;</button>
+        </div>
+        <div class="panel-body">
+          <div class="card">
+            <div class="card-header">Game Info</div>
+            <div class="info-row">
+              <span class="label">Players Online</span>
+              <span id="player-count" class="value">0</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Active Pickaxes</span>
+              <span id="active-pickaxes" class="value">0</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Block Guide</div>
+            <div id="block-guide" class="block-guide-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard Modal -->
+      <div id="lb-modal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="panel-header">
+            <h2 class="panel-title">🏆 Leaderboard</h2>
+            <button id="lb-close-btn" class="close-btn" aria-label="Close leaderboard">&times;</button>
+          </div>
+          <div id="leaderboard" class="modal-body"></div>
+        </div>
+      </div>
+
+      <!-- Floating Chat (always visible) -->
+      <div id="chat-overlay" class="chat-floating">
+        <div id="chat-messages" class="chat-messages-floating"></div>
+        <div id="chat-input-area" class="chat-input-area-floating">
+          <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
+          <button id="chat-send-btn" class="btn btn-chat-send">Send</button>
+        </div>
+        <button id="chat-toggle-btn" class="chat-open-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path>
+          </svg>
+          Chat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hardcore Confirmation Modal -->
+  <div id="hardcore-confirm-modal" class="confirm-modal-overlay">
+    <div class="confirm-modal">
+      <div class="confirm-modal-icon">🔥</div>
+      <h3 class="confirm-modal-title">Hardcore Mode</h3>
+      <p class="confirm-modal-text">You are entering <strong>Hardcore 10x</strong> mode.<br>All costs and rewards are multiplied by 10x.<br>Please proceed with caution.</p>
+      <label class="confirm-modal-check">
+        <input type="checkbox" id="hardcore-dont-ask">
+        <span>Don't ask me again</span>
+      </label>
+      <div class="confirm-modal-actions">
+        <button id="hardcore-cancel-btn" class="btn btn-outline btn-modal">Cancel</button>
+        <button id="hardcore-ok-btn" class="btn btn-primary btn-modal btn-hardcore">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
+  <script type="module" src="/js/wallet-bundle.js"></script>
+  <script src="/js/quest-abi.js"></script>
+  <script src="/js/vault-abi.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket.js"></script>
+  <script src="/js/camera.js"></script>
+  <script src="/js/renderer.js"></script>
+  <script src="/js/hud.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
