@@ -276,8 +276,12 @@ io.on('connection', (socket) => {
 
     player._addBalanceHistory.push(now);
     const amount = 10000;
-    player.balance += amount;
-    socket.emit('balanceUpdated', { balance: player.balance });
+    player.chargedCredits += amount;
+    socket.emit('balanceUpdated', {
+      balance: player.balance,
+      chargedCredits: player.chargedCredits,
+      inGameCredits: player.inGameCredits,
+    });
   });
 
   // ===== Quest System =====
@@ -287,22 +291,20 @@ io.on('connection', (socket) => {
     socket.emit('questStatus', player.getQuestStatus());
   });
 
-  // Verify on-chain quest completion
+  // Verify on-chain quest completion + give in-game credit reward
   socket.on('verifyQuestCompletion', async (data) => {
     const player = findPlayer(socket.id);
     if (!player) return;
     if (!data || typeof data.questId !== 'number' || typeof data.txHash !== 'string') return;
 
     const questId = data.questId;
-    if (questId < 1 || questId > 10) return;
+    if (questId < 1 || questId > 9999) return;
     if (player.completedQuests.has(questId)) {
       return socket.emit('questVerified', { questId, success: false, message: 'Already completed' });
     }
 
-    // Check if quest target is met
-    const quests = player.getQuestStatus();
-    const quest = quests.find(q => q.id === questId);
-    if (!quest || quest.current < quest.target) {
+    // Check if quest target is met (uses new tiered system)
+    if (!player.isQuestTargetMet(questId)) {
       return socket.emit('questVerified', { questId, success: false, message: 'Quest target not reached' });
     }
 
@@ -324,11 +326,23 @@ io.on('connection', (socket) => {
         }
       }
 
-      // Mark quest as completed
+      // Mark quest as completed + give in-game credit reward
       player.completedQuests.add(questId);
-      socket.emit('questVerified', { questId, success: true });
+      const reward = player.getQuestReward(questId);
+      if (reward > 0) {
+        player.earnInGameCredits(reward, `Quest #${questId} reward`);
+        console.log(`[Quest] ${player.name} completed quest #${questId} → +${reward.toLocaleString()} in-game credits (tx: ${data.txHash})`);
+      }
+
+      socket.emit('questVerified', {
+        questId,
+        success: true,
+        reward,
+        inGameCredits: player.inGameCredits,
+        balance: player.balance,
+        chargedCredits: player.chargedCredits,
+      });
       socket.emit('questStatus', player.getQuestStatus());
-      console.log(`[Quest] ${player.name} completed quest #${questId} (tx: ${data.txHash})`);
     } catch (err) {
       console.error('[Quest] Verification error:', err.message);
       socket.emit('questVerified', { questId, success: false, message: 'Verification error' });
@@ -395,11 +409,11 @@ io.on('connection', (socket) => {
       // Mark tx as processed to prevent replay
       processedTxHashes.add(txHash);
 
-      // Credit the player's in-game balance
-      player.balance += creditsToAdd;
+      // Credit the player's charged credits (withdrawable)
+      player.chargedCredits += creditsToAdd;
 
       socket.emit('depositConfirmed', { txHash, success: true, creditsAdded: creditsToAdd });
-      socket.emit('balanceUpdated', { balance: player.balance });
+      socket.emit('balanceUpdated', { balance: player.balance, chargedCredits: player.chargedCredits, inGameCredits: player.inGameCredits });
       console.log(`[Deposit] ${player.name} deposited ${creditsToAdd} credits (tx: ${txHash})`);
     } catch (err) {
       console.error('[Deposit] Sync error:', err.message);
@@ -459,11 +473,11 @@ io.on('connection', (socket) => {
       // Mark tx as processed to prevent replay
       processedTxHashes.add(txHash);
 
-      // Deduct from player's in-game balance
-      player.balance = Math.max(0, player.balance - creditsToDeduct);
+      // Deduct from player's charged credits only (in-game credits not withdrawable)
+      player.chargedCredits = Math.max(0, player.chargedCredits - creditsToDeduct);
 
       socket.emit('withdrawConfirmed', { txHash, success: true, creditsDeducted: creditsToDeduct });
-      socket.emit('balanceUpdated', { balance: player.balance });
+      socket.emit('balanceUpdated', { balance: player.balance, chargedCredits: player.chargedCredits, inGameCredits: player.inGameCredits });
       console.log(`[Withdraw] ${player.name} withdrew ${creditsToDeduct} credits (tx: ${txHash})`);
     } catch (err) {
       console.error('[Withdraw] Sync error:', err.message);

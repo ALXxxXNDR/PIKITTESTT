@@ -1,10 +1,10 @@
 // ============================================
 // PIKIT - Game Balance Constants
 // Guide: Adjust all balance values in this file
-// v4.6 Golden Balance — house edge 55% @ 5p, 54% @ 10p
-// PIKIT system pickaxe: 1.5 block size (large, slow, floating)
-// Monte Carlo simulation: tools/balance-v46-sim.js
-// Per-pickaxe ROI 50-53% @5p, system steal ~2.8% @5p / ~1.4% @10p
+// v4.7 Reward Distribution Rebalance — house edge 55% @ 5p, 54% @ 10p
+// Common blocks: low HP (1-hit break) + meaningful rewards (22-28cr)
+// 10K spending floor: P10 ~3,100cr (was ~2,000 in v4.6)
+// Monte Carlo simulation: tools/balance-v47-sim.js, tools/balance-v47-final.js
 // ============================================
 
 const GAME = {
@@ -21,13 +21,14 @@ const GAME = {
 };
 
 // ========== Pickaxe Definitions (4 unique types + system) ==========
-// v4.6 ROI @5p:  basic ~50%, power ~52%, light ~51%, swift ~53%
-// v4.6 ROI @10p: basic ~51%, power ~54%, light ~52%, swift ~54%
+// v4.7 ROI @5p:  basic ~49%, power ~45%, light ~47%, swift ~52%
+// v4.7 ROI @10p: basic ~51%, power ~47%, light ~49%, swift ~53%
+// Prices increased ~60% to compensate for higher common block rewards
 // PIKIT system: large (1.5 blocks) but very slow — gentle block competition
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 2100,
+    price: 3400,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -39,7 +40,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 5400,
+    price: 8800,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -51,7 +52,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 2400,
+    price: 3900,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -63,7 +64,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 2200,
+    price: 3600,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,
@@ -89,7 +90,7 @@ const PICKAXE_TYPES = {
 
 // ========== TNT Definition (single type) ==========
 // TNT only explodes on block contact, not by fuse timer
-// v4.6: price 8000, damage 30 — utility item, ~3% ROI (unchanged)
+// v4.7: price 8000, damage 30 — utility item, ~3% ROI (unchanged from v4.6)
 const TNT_TYPES = {
   tnt: {
     name: 'TNT',
@@ -102,8 +103,10 @@ const TNT_TYPES = {
 };
 
 // ========== Block Definitions (10 types + bedrock) ==========
-// v4.6: Block HP/rewards unchanged from v4.4
-// Avg block reward ≈ 149 credits (weighted), avg HP ≈ 19
+// v4.7: Common blocks — LOW HP (1-hit break) + MEANINGFUL rewards (22-28cr)
+// v4.7: Rare blocks — slightly reduced rewards to compensate
+// Avg block reward ≈ 115 credits (weighted), avg HP ≈ 5
+// Players now earn steady small rewards from common blocks + occasional big wins
 // NOTE: Chunk.js caches the block spawn pool on first use. After changing
 // block weights here, a full server restart is required to invalidate that cache.
 const BLOCK_TYPES = {
@@ -120,9 +123,9 @@ const BLOCK_TYPES = {
   },
   diamond_block: {
     name: 'Diamond Block',
-    hp: 180,               // Very tanky (up from 150)
+    hp: 180,               // Very tanky — unchanged
     weight: 1,             // 1% spawn
-    reward: 5000,          // 5K credits
+    reward: 4500,          // 4.5K credits (was 5000, -10%)
     rewardType: 'fixed',
     color: '#00CED1',
     texture: 'diamond_ore.png',
@@ -130,9 +133,9 @@ const BLOCK_TYPES = {
   },
   gold_block: {
     name: 'Gold Block',
-    hp: 90,                // Tanky (up from 80)
+    hp: 90,                // Tanky — unchanged
     weight: 2,             // 2% spawn
-    reward: 2000,          // 2K credits
+    reward: 1800,          // 1.8K credits (was 2000, -10%)
     rewardType: 'fixed',
     color: '#FFD700',
     texture: 'gold_ore.png',
@@ -140,66 +143,68 @@ const BLOCK_TYPES = {
   },
   emerald_block: {
     name: 'Emerald Block',
-    hp: 55,                // Moderate (up from 50)
+    hp: 55,                // Moderate — unchanged
     weight: 5,             // 5% spawn
-    reward: 600,           // 600 credits
+    reward: 540,           // 540 credits (was 600, -10%)
     rewardType: 'fixed',
     color: '#50C878',
     texture: 'emerald_ore.png',
   },
   iron_block: {
     name: 'Iron Block',
-    hp: 32,                // Moderate (up from 30)
+    hp: 20,                // Easier to break (was 32, -37%)
     weight: 12,            // 12% spawn
-    reward: 150,           // 150 credits
+    reward: 100,           // 100 credits (was 150, -33%)
     rewardType: 'fixed',
     color: '#BC8F8F',
     texture: 'iron_ore.png',
   },
   copper_block: {
     name: 'Copper Block',
-    hp: 20,                // Light (up from 18)
+    hp: 15,                // Easier to break (was 20, -25%)
     weight: 20,            // 20% spawn
-    reward: 50,            // 50 credits
+    reward: 50,            // 50 credits — unchanged
     rewardType: 'fixed',
     color: '#B87333',
     texture: 'copper_ore.png',
   },
 
-  // === 4 Random Credit Blocks (1~3 credit reward) ===
+  // === 4 Common Blocks (fixed reward, 1-hit breakable with DMG 3) ===
+  // v4.7: HP drastically reduced + rewards increased from 1~5 → 22~28 fixed
+  // This ensures every block break gives meaningful credits
   stone: {
     name: 'Stone',
-    hp: 10,                // Same as v4.3
+    hp: 3,                 // 1-hit with DMG 3 (was 10)
     weight: 20,            // 20% spawn
-    reward: 3,             // max random
-    rewardType: 'random',  // gives 1~3
+    reward: 28,            // 28 credits (was 1~5 random)
+    rewardType: 'fixed',
     color: '#808080',
     texture: 'stone.png',
   },
   dirt: {
     name: 'Dirt',
-    hp: 7,                 // Up from 6
+    hp: 2,                 // 1-hit with DMG 3 (was 7)
     weight: 18,            // 18% spawn
-    reward: 3,
-    rewardType: 'random',  // gives 1~3
+    reward: 22,            // 22 credits (was 1~5 random)
+    rewardType: 'fixed',
     color: '#8B5E3C',
     texture: 'dirt.png',
   },
   gravel: {
     name: 'Gravel',
-    hp: 9,                 // Up from 8
+    hp: 3,                 // 1-hit with DMG 3 (was 9)
     weight: 12,            // 12% spawn
-    reward: 3,
-    rewardType: 'random',  // gives 1~3
+    reward: 25,            // 25 credits (was 1~5 random)
+    rewardType: 'fixed',
     color: '#696969',
     texture: 'cobblestone.png',
   },
   clay: {
     name: 'Clay',
-    hp: 8,                 // Up from 7
+    hp: 2,                 // 1-hit with DMG 3 (was 8)
     weight: 10,            // 10% spawn
-    reward: 3,
-    rewardType: 'random',  // gives 1~3
+    reward: 24,            // 24 credits (was 1~5 random)
+    rewardType: 'fixed',
     color: '#A09070',
     texture: 'andesite.png',
   },
@@ -217,7 +222,7 @@ const BLOCK_TYPES = {
 };
 
 // ========== Jackpot System Config ==========
-// v4.6: unchanged from v4.3
+// v4.7: unchanged from v4.3
 const JACKPOT_CONFIG = {
   SPAWN_THRESHOLD: 1500000,  // 1.5M credits must be spent before jackpot can spawn
   SPAWN_CHANCE: 0.0005,      // 0.05% chance per eligible block position (down from 0.1%)
@@ -226,15 +231,15 @@ const JACKPOT_CONFIG = {
 };
 
 // ========== Combo System ==========
-// v4.6: unchanged from v4.3 (max 1.5x)
+// v4.7: unchanged from v4.3 (max 1.5x)
 const COMBO = {
   TIMEOUT: 2000,
   MULTIPLIERS: [1, 1.05, 1.1, 1.2, 1.35, 1.5],  // Was [1, 1.2, 1.5, 2.0, 3.0, 5.0]
   THRESHOLDS: [0, 3, 6, 10, 15, 25],
 };
 
-// House edge target — 55% at 5 players, 54% at 10 players (v4.6 simulation-verified)
-// Actual range: ~55% @5p, ~54% @10p, ~53% @20p, ~52.5% @40p
+// House edge target — 55% at 5 players, 54% at 10 players (v4.7 simulation-verified)
+// Actual range: ~55% @5p, ~54% @10p, ~53% @20p, ~53% @40p
 const HOUSE_EDGE = 0.55;
 
 // Initial balance

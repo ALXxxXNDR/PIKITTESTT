@@ -103,6 +103,8 @@
   GameSocket.onBalanceUpdate = (data) => {
     if (GameSocket.player) {
       GameSocket.player.balance = data.balance;
+      if (data.chargedCredits !== undefined) GameSocket.player.chargedCredits = data.chargedCredits;
+      if (data.inGameCredits !== undefined) GameSocket.player.inGameCredits = data.inGameCredits;
       UI.updatePlayerInfo(GameSocket.player);
     }
   };
@@ -156,7 +158,13 @@
 
   GameSocket.onQuestVerified = (data) => {
     if (data.success) {
-      UI.showToast(`Quest #${data.questId} completed on-chain!`, 'success');
+      const rewardText = data.reward ? `+${data.reward.toLocaleString()} in-game credits` : '';
+      UI.showToast(`Quest completed! ${rewardText}`, 'success');
+      // Update credit split if provided
+      if (GameSocket.player && data.inGameCredits !== undefined) {
+        GameSocket.player.inGameCredits = data.inGameCredits;
+        UI.updatePlayerInfo(GameSocket.player);
+      }
       GameSocket.getQuests();
     } else {
       UI.showToast(data.message || 'Quest verification failed', 'error');

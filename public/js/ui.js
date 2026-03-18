@@ -284,25 +284,50 @@ const UI = {
     }
   },
 
+  _toRoman(num) {
+    const romans = [['VII',7],['VI',6],['V',5],['IV',4],['III',3],['II',2],['I',1]];
+    for (const [r, v] of romans) { if (num === v) return r; }
+    return String(num);
+  },
+
   renderQuests(quests) {
     this._questData = quests;
     const container = document.getElementById('quest-list');
     if (!container) return;
     container.innerHTML = '';
 
-    for (const quest of quests) {
+    // Sort: active (uncompleted) first, completed at bottom
+    const sorted = [...quests].sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      return (a.id || 0) - (b.id || 0);
+    });
+
+    for (const quest of sorted) {
       const progress = Math.min(quest.current / quest.target, 1);
       const pct = Math.round(progress * 100);
       const canComplete = quest.current >= quest.target && !quest.completed;
+
+      // Tier indicator text
+      const tierText = quest.maxTier
+        ? `${this._toRoman(quest.tier || 1)}/${this._toRoman(quest.maxTier)}`
+        : '';
+
+      // Reward text
+      const rewardText = quest.reward
+        ? `+${quest.reward.toLocaleString()} credits`
+        : '';
 
       const item = document.createElement('div');
       item.className = `quest-item${quest.completed ? ' completed' : ''}`;
       item.innerHTML = `
         <div class="quest-header">
-          <span class="quest-name">${this._esc(quest.name)}</span>
-          ${quest.completed ? '<span class="quest-check">✅</span>' : ''}
+          <span class="quest-name">${this._esc(quest.name)}${tierText ? `<span class="quest-tier">${tierText}</span>` : ''}</span>
+          ${quest.completed
+            ? '<span class="quest-completed-badge">&#x2714; Completed</span>'
+            : ''}
         </div>
         <div class="quest-desc">${this._esc(quest.desc)}</div>
+        ${rewardText ? `<div class="quest-reward">${rewardText}</div>` : ''}
         <div class="quest-progress-bar">
           <div class="quest-progress-fill" style="width: ${pct}%"></div>
         </div>
@@ -662,8 +687,18 @@ const UI = {
     const profitText = `${profit >= 0 ? '+' : ''}${profit.toLocaleString()}`;
     const profitColor = profit >= 0 ? 'var(--green)' : 'var(--red)';
 
+    // Credit split values
+    const charged = Math.round(player.chargedCredits || 0);
+    const inGame = Math.round(player.inGameCredits || 0);
+
     // HUD balance button
     document.getElementById('my-balance').textContent = balance;
+
+    // Credit tooltip (hover popup)
+    const chargedEl = document.getElementById('credit-charged');
+    const ingameEl = document.getElementById('credit-ingame');
+    if (chargedEl) chargedEl.textContent = charged.toLocaleString();
+    if (ingameEl) ingameEl.textContent = inGame.toLocaleString();
 
     // Shop panel
     document.getElementById('my-name').textContent = player.name;
@@ -690,6 +725,12 @@ const UI = {
       pnlOverview.textContent = profitText;
       pnlOverview.style.color = profitColor;
     }
+
+    // My Info popup — Credit breakdown in Overview
+    const chargedOverview = document.getElementById('myinfo-charged-overview');
+    const ingameOverview = document.getElementById('myinfo-ingame-overview');
+    if (chargedOverview) chargedOverview.textContent = charged.toLocaleString();
+    if (ingameOverview) ingameOverview.textContent = inGame.toLocaleString();
   },
 
   // ===== Leaderboard =====

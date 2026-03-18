@@ -30,10 +30,12 @@ class Block {
     this.lastHitTime = 0;
   }
 
-  // Compute reward (random or fixed)
+  // Compute reward (fixed or random)
+  // v4.7: All blocks now use fixed rewards for consistent gameplay
+  // random type kept for backward compatibility but no longer used
   getReward() {
     if (this.rewardType === 'random') {
-      return Math.floor(Math.random() * 5) + 1; // 1~5
+      return Math.floor(Math.random() * this.baseReward) + 1;
     }
     return this.baseReward;
   }

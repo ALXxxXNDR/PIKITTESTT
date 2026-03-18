@@ -13,13 +13,10 @@ contract PikitQuest {
     // Events
     event QuestCompleted(address indexed player, uint256 indexed questId, uint256 timestamp);
 
-    // Valid quest IDs: 1-10
-    uint256 public constant MAX_QUEST_ID = 10;
-
     /// @notice Complete a quest (records on-chain)
-    /// @param questId The quest ID (1-10)
+    /// @param questId The quest ID (1-9999)
     function completeQuest(uint256 questId) external {
-        require(questId >= 1 && questId <= MAX_QUEST_ID, "Invalid quest ID");
+        require(questId >= 1 && questId <= 9999, "Invalid quest ID");
         require(!questCompleted[msg.sender][questId], "Quest already completed");
 
         questCompleted[msg.sender][questId] = true;
@@ -33,11 +30,11 @@ contract PikitQuest {
         return questCompleted[player][questId];
     }
 
-    /// @notice Get all completed quest IDs for a player
-    function getCompletedQuests(address player) external view returns (bool[10] memory) {
-        bool[10] memory results;
-        for (uint256 i = 0; i < 10; i++) {
-            results[i] = questCompleted[player][i + 1];
+    /// @notice Batch check: returns completion status for multiple quest IDs
+    function batchIsCompleted(address player, uint256[] calldata questIds) external view returns (bool[] memory) {
+        bool[] memory results = new bool[](questIds.length);
+        for (uint256 i = 0; i < questIds.length; i++) {
+            results[i] = questCompleted[player][questIds[i]];
         }
         return results;
     }

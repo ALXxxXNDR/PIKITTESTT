@@ -63,10 +63,12 @@ const GameSocket = {
       }
     });
 
-    // Balance update
+    // Balance update (now includes chargedCredits / inGameCredits split)
     this.socket.on('balanceUpdated', (data) => {
       if (this.player) {
         this.player.balance = data.balance;
+        if (data.chargedCredits !== undefined) this.player.chargedCredits = data.chargedCredits;
+        if (data.inGameCredits !== undefined) this.player.inGameCredits = data.inGameCredits;
       }
       if (this.onBalanceUpdate) this.onBalanceUpdate(data);
     });

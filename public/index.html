@@ -57,6 +57,10 @@
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span id="my-balance" class="hud-balance-text">0</span>
+            <div id="credit-tooltip" class="credit-tooltip">
+              <div class="credit-tooltip-row"><span>충전 Credit</span><span id="credit-charged">0</span></div>
+              <div class="credit-tooltip-row"><span>In-game Credit</span><span id="credit-ingame">0</span></div>
+            </div>
           </button>
         </div>
       </div>
@@ -101,6 +105,14 @@
               <div class="myinfo-stat-row">
                 <span class="myinfo-label">Balance</span>
                 <span class="myinfo-value gold" id="myinfo-balance-overview">0</span>
+              </div>
+              <div class="myinfo-stat-row myinfo-credit-sub">
+                <span class="myinfo-label">&nbsp;&nbsp;├ 충전 Credit</span>
+                <span class="myinfo-value" id="myinfo-charged-overview">0</span>
+              </div>
+              <div class="myinfo-stat-row myinfo-credit-sub">
+                <span class="myinfo-label">&nbsp;&nbsp;└ In-game Credit</span>
+                <span class="myinfo-value" id="myinfo-ingame-overview">0</span>
               </div>
               <div class="myinfo-stat-row">
                 <span class="myinfo-label">Total Earned</span>

@@ -747,10 +747,61 @@ body {
   font-family: var(--font);
 }
 .hud-btn-profile:hover { background: hsla(0,0%,100%,0.15); }
+.hud-btn-profile { position: relative; }
 .hud-balance-text {
   font-size: 13px;
   font-weight: 700;
   color: var(--primary);
+}
+
+/* === Credit Tooltip (hover popup on balance) === */
+.credit-tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: #1a1a2e;
+  border: 1px solid hsla(0,0%,100%,0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: all 0.15s ease;
+  z-index: 60;
+}
+.hud-btn-profile:hover .credit-tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.credit-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.credit-tooltip-row span:last-child {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* === My Info Credit Sub-rows === */
+.myinfo-credit-sub {
+  padding-left: 12px;
+}
+.myinfo-credit-sub .myinfo-label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  opacity: 0.8;
+}
+.myinfo-credit-sub .myinfo-value {
+  font-size: 11px;
+  opacity: 0.9;
 }
 
 /* === My Info Popup === */
@@ -867,6 +918,7 @@ body {
 
 .quest-item.completed {
   opacity: 0.6;
+  border-left: 3px solid var(--green);
   border-color: var(--green);
 }
 
@@ -917,6 +969,36 @@ body {
   font-size: 10px;
   color: var(--muted-foreground);
   text-align: right;
+}
+
+.quest-reward {
+  font-size: 11px;
+  color: #FFD700;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.quest-tier {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  background: hsla(0,0%,100%,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  letter-spacing: 0.3px;
+}
+
+.quest-completed-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  background: hsla(142,70%,45%,0.12);
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .quest-complete-btn {
