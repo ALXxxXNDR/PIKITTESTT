@@ -1,19 +1,20 @@
-# PIKIT v4.5 Balance Mathematical Analysis
+# PIKIT v4.6 Balance Mathematical Analysis
 
 ## Target Parameters
 - Concurrent players: 3~80
 - Max pickaxes per player per field: 3
 - TNT: unlimited
 - House win rate: **55% at 5 players, 54% at 10 players**
+- PIKIT system pickaxe: **1.5 block size** (non-negotiable visual requirement)
 - Jackpot: min 10 players + 1.5M credits spent since last
 
 ---
 
-## 1. Monte Carlo Simulation Methodology
+## 1. Simulation Methodology
 
-Balance verified using `tools/balance-v45-combined.js`:
-- **50,000-80,000 iterations** per configuration
-- Parameter sweep: 300+ system pickaxe combinations (scale × speed × damage × price multiplier)
+Balance verified using `tools/balance-v46-sim.js`:
+- **60,000+ iterations** per configuration
+- Combined sweep: system pickaxe params × price multiplier (300+ combinations)
 - Calibrated encounter rate: `2.5 × (scale/0.8) × speedMult^0.7 × gravMult^0.3`
 - System steal: `sysEncRate / (sysEncRate + playerCount × 1.5 × 3.0)`
 - Combo: 15% break chance between block destroys
@@ -21,7 +22,38 @@ Balance verified using `tools/balance-v45-combined.js`:
 
 ---
 
-## 2. Block Reward & HP (unchanged from v4.4)
+## 2. System Pickaxe — "Giant Floating PIKIT"
+
+### v4.5 → v4.6 Changes
+| Parameter | v4.5 | v4.6 | Change |
+|-----------|------|------|--------|
+| scale | 0.5 | **1.5** | +200% |
+| damage | 6 | **5** | -17% |
+| gravityMult | 0.7 | **0.3** | -57% |
+| speedMult | 0.55 | **0.1** | -82% |
+| Encounter rate | 0.92/s | **0.65/s** | -29% |
+
+### Encounter Rate Math
+```
+encRate = 2.5 × (1.5/0.8) × 0.1^0.7 × 0.3^0.3
+        = 2.5 × 1.875 × 0.200 × 0.697
+        = 0.652/s
+```
+
+### Steal Rate
+```
+stealRate = 0.652 / (0.652 + playerCount × 4.5)
+
+@3p:  0.652 / 14.15 = 4.6%
+@5p:  0.652 / 23.15 = 2.8%
+@10p: 0.652 / 45.65 = 1.4%
+@20p: 0.652 / 90.65 = 0.7%
+@40p: 0.652 / 180.65 = 0.4%
+```
+
+---
+
+## 3. Block Reward & HP (unchanged)
 
 | Block | Weight | HP | Reward | Contribution |
 |-------|--------|-----|--------|--------------|
@@ -38,121 +70,90 @@ Balance verified using `tools/balance-v45-combined.js`:
 
 ---
 
-## 3. System Pickaxe — The Key Balance Lever
-
-### v4.4 → v4.5 Changes
-| Parameter | v4.4 | v4.5 | Change |
-|-----------|------|------|--------|
-| damage | 8 | **6** | -25% |
-| scale | 1.8 | **0.5** | -72% |
-| speedMult | 1.5 | **0.55** | -63% |
-| Encounter rate | 6.71/s | **0.92/s** | -86% |
-
-### Why This Works
-The system pickaxe's encounter rate determines the house edge "spread" across player counts:
-
-```
-stealRate = sysEncRate / (sysEncRate + playerCount × 1.5 × 3.0)
-
-v4.4 (sysEnc=6.71):  5p→23%, 10p→13%, 20p→7%   → huge spread
-v4.5 (sysEnc=0.92):  5p→4%, 10p→2%, 20p→1%     → flat spread
-```
-
-Lower encounter rate = flatter curve = more consistent house edge across player counts.
-
-### Steal Rate by Player Count
-| Players | v4.4 steal | v4.5 steal | Difference |
-|---------|-----------|-----------|-----------|
-| 3 | 33% | 6.4% | -27pp |
-| 5 | 23% | 3.9% | -19pp |
-| 10 | 13% | 2.0% | -11pp |
-| 20 | 7% | 1.0% | -6pp |
-| 40 | 4% | 0.5% | -3pp |
-
----
-
 ## 4. Per-Pickaxe Balance
 
-### At 5 Players (primary target)
-| Pickaxe | Price | DMG | Lifetime | Blocks | Reward | ROI |
-|---------|-------|-----|----------|--------|--------|-----|
-| Basic | 1,900 | 3 | 30s | 10.3 | 1,010 | **52.2%** |
-| Power | 5,400 | 5 | 30s | 21.3 | 2,751 | **51.2%** |
-| Light | 2,400 | 4 | 35s | 11.5 | 1,198 | **50.6%** |
-| Swift | 2,400 | 3 | 25s | 11.1 | 1,140 | **48.2%** |
+### At 5 Players (primary target, steal 2.8%)
+| Pickaxe | Price | DMG | Lifetime | ROI |
+|---------|-------|-----|----------|-----|
+| Basic | 2,100 | 3 | 30s | **49.7%** |
+| Power | 5,400 | 5 | 30s | **52.1%** |
+| Light | 2,400 | 4 | 35s | **51.0%** |
+| Swift | 2,200 | 3 | 25s | **53.3%** |
+| **Spread** | | | | **3.6%** |
 
-### At 10 Players (secondary target)
-| Pickaxe | Price | DMG | Lifetime | Blocks | Reward | ROI |
-|---------|-------|-----|----------|--------|--------|-----|
-| Basic | 1,900 | 3 | 30s | 10.9 | 1,055 | **54.5%** |
-| Power | 5,400 | 5 | 30s | 22.4 | 2,857 | **53.2%** |
-| Light | 2,400 | 4 | 35s | 12.2 | 1,237 | **52.3%** |
-| Swift | 2,400 | 3 | 25s | 11.7 | 1,193 | **50.5%** |
-
-**All pickaxes within 48-55% ROI — balanced meta**
+### At 10 Players (secondary target, steal 1.4%)
+| Pickaxe | Price | DMG | Lifetime | ROI |
+|---------|-------|-----|----------|-----|
+| Basic | 2,100 | 3 | 30s | **50.8%** |
+| Power | 5,400 | 5 | 30s | **53.6%** |
+| Light | 2,400 | 4 | 35s | **52.4%** |
+| Swift | 2,200 | 3 | 25s | **54.4%** |
 
 ---
 
 ## 5. Blended House Edge
 
-| Players | System Steal | Blended ROI | House Edge |
-|---------|-------------|-------------|-----------|
-| 3 | 6.4% | 42.3% | **57.8%** |
-| **5** | **3.9%** | **44.1%** | **55.9%** ✅ |
-| **10** | **2.0%** | **45.8%** | **54.2%** ✅ |
-| 20 | 1.0% | 46.8% | **53.2%** |
-| 40 | 0.5% | 47.6% | **52.4%** |
-| 80 | 0.3% | 48.0% | **52.0%** |
+| Players | Steal | Blended ROI | House Edge |
+|---------|-------|-------------|-----------|
+| 3 | 4.6% | 43.4% | **56.6%** |
+| **5** | **2.8%** | **44.9%** | **55.1%** ✅ |
+| **10** | **1.4%** | **46.0%** | **54.0%** ✅ |
+| 20 | 0.7% | 47.0% | **53.0%** |
+| 40 | 0.4% | 47.4% | **52.6%** |
+| 80 | 0.2% | 47.7% | **52.3%** |
 
 ---
 
 ## 6. TNT Economy (unchanged)
 
-| Item | Price | DMG | Blocks Hit | Revenue | ROI |
-|------|-------|-----|-----------|---------|-----|
-| TNT | 8,000 | 30 | ~16 | ~235 | **~3%** |
+| Item | Price | DMG | Revenue | ROI |
+|------|-------|-----|---------|-----|
+| TNT | 8,000 | 30 | ~235 | **~3%** |
 
 ---
 
-## 7. Combo System (unchanged)
+## 7. Version History Summary
 
-| Stage | Threshold | Multiplier |
-|-------|-----------|-----------|
-| 0 | 0 hits | 1.0x |
-| 1 | 3 hits | 1.05x |
-| 5 | 25 hits | 1.5x (max) |
+| Version | Target | System Scale | Key Change |
+|---------|--------|-------------|-----------|
+| v4.3 | 55% @20p | 2.0 | Initial balance overhaul |
+| v4.4 | 55% @20p | 1.8 | Pickaxe balance equalization |
+| v4.5 | 55% @5p | 0.5 | Low player count optimization |
+| **v4.6** | **55% @5p** | **1.5** | **Large PIKIT + ultra-slow movement** |
 
----
-
-## 8. v4.4 → v4.5 Full Changes
-
-| Parameter | v4.4 | v4.5 | Change |
+### v4.5 → v4.6 Full Diff
+| Parameter | v4.5 | v4.6 | Change |
 |-----------|------|------|--------|
-| Basic price | 1,800 | 1,900 | +5.6% |
-| Power price | 5,000 | 5,400 | +8.0% |
-| Light price | 2,200 | 2,400 | +9.1% |
-| Swift price | 2,200 | 2,400 | +9.1% |
-| System DMG | 8 | 6 | -25% |
-| System scale | 1.8 | 0.5 | -72% |
-| System speed | 1.5 | 0.55 | -63% |
-
-All other values (block HP/rewards, TNT, combo, jackpot, physics) unchanged.
+| Basic price | 1,900 | 2,100 | +10.5% |
+| Swift price | 2,400 | 2,200 | -8.3% |
+| System scale | 0.5 | 1.5 | +200% |
+| System damage | 6 | 5 | -17% |
+| System gravMult | 0.7 | 0.3 | -57% |
+| System speedMult | 0.55 | 0.1 | -82% |
 
 ---
 
-## 9. Design Philosophy
+## 8. Design Philosophy
 
-### Why Weak System Pickaxe?
-The v4.4 approach used a strong system pickaxe (large, fast, high damage) as the primary house edge enforcer. This worked well at 20+ players but created a brutal experience for small groups.
+### "Giant Floating PIKIT" Concept
+The system pickaxe is large (1.5 blocks) but moves extremely slowly:
+- **gravityMult 0.3** — falls at 30% normal speed, appears to float
+- **speedMult 0.1** — almost no horizontal movement
+- **damage 5** — takes many hits to destroy blocks
 
-v4.5 shifts the balance philosophy:
-- **Pickaxe pricing** is now the primary house edge source (prices ~5-9% higher than v4.4)
-- **System pickaxe** provides a mild, consistent ~2-6% additional edge
-- Result: consistent 52-56% house edge across ALL player counts
+This creates a "floating obstacle" that:
+1. Covers multiple columns (wide hitbox) — solves the v4.5 single-column problem
+2. Moves predictably — players can strategize around it
+3. Steals blocks slowly — fair competition at all player counts
+4. Looks imposing — large magenta pickaxe adds visual drama
 
-### Player Experience
-- At 5 players: players see ~49-52% return per pickaxe — frequent meaningful rewards
-- Iron blocks (150cr) and copper (50cr) provide regular dopamine hits
-- Occasional emerald (600cr) or gold (2,000cr) creates excitement
-- Power pickaxe at 5,400cr feels premium but delivers proportional value
-- No single "meta" pickaxe — all 4 types are viable choices
+### Why Not Just Change System Scale?
+With scale 1.5, the encounter rate formula gives a high base:
+```
+base = 2.5 × (1.5/0.8) = 4.69/s
+```
+Only extreme reductions in speed/gravity can bring this down to ~0.65/s.
+The math requires `speedMult^0.7 × gravMult^0.3 ≈ 0.14`, achieved by:
+- speedMult=0.1 → 0.1^0.7 = 0.200
+- gravMult=0.3 → 0.3^0.3 = 0.697
+- Product: 0.200 × 0.697 = 0.139 ✓
