@@ -1,9 +1,9 @@
 // ============================================
 // PIKIT - Game Balance Constants
 // Guide: Adjust all balance values in this file
-// v4.4 Golden Balance — house edge 54-55% @ 20 players
-// Monte Carlo simulation: tools/balance-final.js (F4 config)
-// Per-pickaxe ROI 49-53% @20p, system pickaxe steal ~7%
+// v4.5 Golden Balance — house edge 55% @ 5 players, 54% @ 10 players
+// Monte Carlo simulation: tools/balance-v45-combined.js
+// Per-pickaxe ROI 48-52% @5p, system steal ~4% @5p / ~2% @10p
 // ============================================
 
 const GAME = {
@@ -20,12 +20,13 @@ const GAME = {
 };
 
 // ========== Pickaxe Definitions (4 unique types + system) ==========
-// v4.4 ROI @20p: basic ~53%, power ~53%, light ~51%, swift ~49%
-// System pickaxe steals ~7% of blocks → blended house edge ~55%
+// v4.5 ROI @5p: basic ~52%, power ~51%, light ~51%, swift ~48%
+// v4.5 ROI @10p: basic ~55%, power ~53%, light ~52%, swift ~51%
+// System pickaxe deliberately small — low steal rate for fair play at low player counts
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 1800,
+    price: 1900,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -37,7 +38,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 5000,
+    price: 5400,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -49,7 +50,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 2200,
+    price: 2400,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -61,7 +62,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 2200,
+    price: 2400,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,
@@ -74,10 +75,10 @@ const PICKAXE_TYPES = {
   system: {
     name: 'PIKIT',
     price: 0,
-    damage: 8,             // Steals blocks to enforce house edge
-    scale: 1.8,            // Large admin pickaxe (tuned down from 2.0 for balanced steal rate)
-    gravityMult: 0.7,      // Slightly slower fall — stays longer, hits more blocks
-    speedMult: 1.5,        // Faster horizontal — covers more ground
+    damage: 6,             // Moderate damage — balanced steal
+    scale: 0.5,            // Compact system pickaxe — low encounter rate for fair low-player-count games
+    gravityMult: 0.7,      // Slightly slower fall
+    speedMult: 0.55,       // Slower horizontal — reduced block competition
     lifetime: Infinity,    // Never expires — permanent house pickaxe
     texture: 'system_pickaxe.png',
     color: '#FF00FF',
@@ -87,7 +88,7 @@ const PICKAXE_TYPES = {
 
 // ========== TNT Definition (single type) ==========
 // TNT only explodes on block contact, not by fuse timer
-// v4.4: price 8000 (down from 15000), damage 30 (up from 25) — utility item, ~3% ROI
+// v4.5: price 8000, damage 30 — utility item, ~3% ROI (unchanged from v4.4)
 const TNT_TYPES = {
   tnt: {
     name: 'TNT',
@@ -100,7 +101,7 @@ const TNT_TYPES = {
 };
 
 // ========== Block Definitions (10 types + bedrock) ==========
-// v4.4: Moderate HP increase from v4.3 for balanced throughput
+// v4.5: Block HP/rewards unchanged from v4.4
 // Avg block reward ≈ 149 credits (weighted), avg HP ≈ 19
 // NOTE: Chunk.js caches the block spawn pool on first use. After changing
 // block weights here, a full server restart is required to invalidate that cache.
@@ -215,7 +216,7 @@ const BLOCK_TYPES = {
 };
 
 // ========== Jackpot System Config ==========
-// v4.4: unchanged from v4.3
+// v4.5: unchanged from v4.3
 const JACKPOT_CONFIG = {
   SPAWN_THRESHOLD: 1500000,  // 1.5M credits must be spent before jackpot can spawn
   SPAWN_CHANCE: 0.0005,      // 0.05% chance per eligible block position (down from 0.1%)
@@ -224,15 +225,15 @@ const JACKPOT_CONFIG = {
 };
 
 // ========== Combo System ==========
-// v4.4: unchanged from v4.3 (max 1.5x)
+// v4.5: unchanged from v4.3 (max 1.5x)
 const COMBO = {
   TIMEOUT: 2000,
   MULTIPLIERS: [1, 1.05, 1.1, 1.2, 1.35, 1.5],  // Was [1, 1.2, 1.5, 2.0, 3.0, 5.0]
   THRESHOLDS: [0, 3, 6, 10, 15, 25],
 };
 
-// House edge target — 55% at 20 players (simulation-verified)
-// Actual range: ~60% @10p, ~55% @20p, ~53% @40p, ~51% @80p
+// House edge target — 55% at 5 players, 54% at 10 players (simulation-verified)
+// Actual range: ~56% @5p, ~54% @10p, ~53% @20p, ~52% @40p
 const HOUSE_EDGE = 0.55;
 
 // Initial balance
