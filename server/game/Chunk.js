@@ -2,7 +2,7 @@ const Block = require('./Block');
 const { BLOCK_TYPES, GAME, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
 
 // Rare block types that trigger spawn alerts (top tier only)
-// diamond=1%, jackpot=conditional — highest rarity only
+// diamond=3.85%, netherite=4.62%, jackpot=conditional
 const RARE_ALERT_TYPES = new Set(['diamond_block', 'netherite_block', 'jackpot']);
 
 // Cache block pool + totalWeight (same every time, no need to rebuild per chunk)

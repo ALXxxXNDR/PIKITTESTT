@@ -231,7 +231,7 @@ class GameEngine {
                   time: now,
                 });
 
-                // Rare block cinematic (diamond_block or gold_block)
+                // Rare block cinematic (diamond, gold, netherite)
                 if (block.type === 'diamond_block' || block.type === 'gold_block' || block.type === 'netherite_block') {
                   this.io.to(this.roomName).emit('rareBlockDestroyed', {
                     playerName: pickaxe.ownerName,
