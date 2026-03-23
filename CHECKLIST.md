@@ -192,3 +192,44 @@ Jackpot Pool: 20p/hr pool+=667,500cr, ~1hr to 50K threshold
 | 잭팟 보상 | 250,000 고정 | **동적 풀** |
 | 잭팟 스폰 조건 | 1.5M 소비 | **풀 ≥ 50,000cr** |
 | 목표 HE | 53~55% | **52~53%** |
+
+---
+
+# PIKIT v4.9 콤보 시스템 제거 — 진행 체크리스트
+
+> 작성일: 2026-03-23
+
+## 완료된 작업
+
+- [x] server/game/constants.js: COMBO 상수 블록 삭제, module.exports 정리
+- [x] server/game/GameEngine.js: _getComboMultiplier() 메서드 삭제, comboMult 적용 로직 삭제
+- [x] server/game/Pickaxe.js: this.combo, this.lastHitTime 필드 삭제
+- [x] GameEngine.js DYNAMIC_SYSTEM_RATIO_THRESHOLDS 수정 (sysCnt = dynamic count, anchor 제외)
+- [x] tools/balance-v48-sim.js: combo 로직 삭제, thresholds 수정, 가격 업데이트
+- [x] docs/superpowers/specs/epic-08-콤보시스템.md 삭제
+- [x] epic-09~16 → epic-08~15 이름 변경 및 내부 번호 수정
+- [x] Notion: Epic 9~16 → 8~15 제목/내용/스토리번호/크로스레퍼런스 전체 업데이트
+- [x] Notion: 콤보 관련 참조 Epic 1,3,5에서 제거
+- [ ] Notion: 콤보 페이지(삭제됨 처리) 노션 UI에서 수동 삭제 필요
+
+## v4.9 최종 가격
+
+| 곡괭이 | v4.8 | v4.9 |
+|--------|------|------|
+| basic | 3,100 | **3,050** |
+| power | 8,100 | **7,950** |
+| light | 3,600 | **3,500** |
+| swift | 3,300 | **3,250** |
+
+**밸런스 결과 (최종):**
+```
+Players | sys(mode)  | blended_HE
+--------|------------|------------
+P1 solo | 1(weak)    | 53.5% OK
+P2      | 1(weak)    | 51.8% OK
+P5      | 1(full)    | 52.7% OK
+P10     | 2(full)    | 52.6% OK
+P15     | 3(full)    | 52.7% OK
+P20     | 3(full)    | 51.8% OK
+P30+    | 3~4(full)  | 50~51% (구조적 한계)
+```
