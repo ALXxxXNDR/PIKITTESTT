@@ -580,20 +580,22 @@ body {
 }
 
 .jackpot-alert {
-  background: linear-gradient(135deg, hsla(47,100%,50%,0.9), hsla(25,100%,56%,0.9));
-  color: var(--primary-foreground);
-  padding: 10px 20px;
-  border-radius: var(--radius);
+  background: rgba(40, 30, 10, 0.8);
+  color: #FFD700;
+  padding: 6px 14px;
+  border: 2px solid #FFD700;
   font-weight: 700;
-  font-size: 14px;
-  margin-bottom: 8px;
-  animation: jackpotIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), jackpotOut 0.4s ease 3s forwards;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+  margin-bottom: 4px;
+  animation: jackpotIn 0.3s ease, jackpotOut 0.3s ease 3s forwards;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 90vw;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  max-width: 80vw;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  image-rendering: pixelated;
 }
 
 @keyframes jackpotIn {
@@ -609,63 +611,56 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 14px 28px;
-  border-radius: calc(var(--radius) * 1.5);
-  font-size: 16px;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
   font-weight: 700;
+  font-family: "Courier New", monospace;
   color: #fff;
-  margin-bottom: 8px;
-  animation: rareBannerIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 4px;
+  animation: rareBannerIn 0.3s ease;
   position: relative;
   overflow: hidden;
   text-align: center;
   white-space: nowrap;
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  border: 2px solid;
+  background: rgba(0, 0, 0, 0.75);
 }
 
-.rare-block-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
-  animation: shimmer 2s infinite;
-}
 
 .rare-block-banner.jackpot {
-  background: linear-gradient(135deg, #FF00FF, #FFD700, #00FFFF, #FF6B35, #FF00FF);
-  background-size: 400% 400%;
-  animation: rareBannerIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), gradientMove 2s ease infinite;
-  border: 2px solid rgba(255, 215, 0, 0.8);
-  text-shadow: 0 0 20px #FFD700, 0 0 40px #FF00FF;
-  font-size: 20px;
-  padding: 20px 36px;
+  background: rgba(60, 0, 60, 0.8);
+  border-color: #FFD700;
+  color: #FFD700;
+  text-shadow: 0 0 6px #FFD700;
+  font-size: 13px;
+  padding: 8px 16px;
+  animation: rareBannerIn 0.3s ease;
 }
 
 .rare-block-banner.diamond {
-  background: linear-gradient(135deg, #006060, #00CED1, #00FFFF, #008B8B);
-  background-size: 300% 300%;
-  animation: rareBannerIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), gradientMove 3s ease infinite;
-  border: 2px solid rgba(0, 206, 209, 0.6);
-  text-shadow: 0 0 20px #00FFFF, 0 0 40px #00CED1;
+  background: rgba(0, 40, 40, 0.8);
+  border-color: #00CED1;
+  color: #00CED1;
+  text-shadow: 0 0 6px #00CED1;
+  animation: rareBannerIn 0.3s ease;
 }
 
 .rare-block-banner.gold {
-  background: linear-gradient(135deg, #B8860B, #FFD700, #FFA500, #DAA520);
-  background-size: 300% 300%;
-  animation: rareBannerIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), gradientMove 3s ease infinite;
-  border: 2px solid rgba(255, 215, 0, 0.6);
-  text-shadow: 0 0 20px #FFD700, 0 0 40px #FFA500;
+  background: rgba(40, 30, 0, 0.8);
+  border-color: #FFD700;
+  color: #FFD700;
+  text-shadow: 0 0 6px #FFD700;
+  animation: rareBannerIn 0.3s ease;
 }
 
 .rare-block-banner.fade-out { animation: rareBannerOut 0.5s ease forwards; }
 
-.rare-banner-emoji { font-size: 24px; z-index: 1; }
-.rare-banner-text { z-index: 1; }
-.rare-banner-player { color: #FFD700; text-shadow: 0 0 10px #FFD700; }
-.rare-banner-block { color: #fff; font-weight: 900; font-size: 18px; }
-.rare-banner-reward { color: #FFD700; font-weight: 900; margin-left: 8px; font-size: 18px; text-shadow: 0 0 15px #FFD700; }
+.rare-banner-emoji { font-size: 14px; z-index: 1; }
+.rare-banner-text { z-index: 1; font-size: 11px; }
+.rare-banner-player { color: #FFD700; }
+.rare-banner-block { color: #fff; font-weight: 900; font-size: 12px; }
+.rare-banner-reward { color: #FFD700; font-weight: 900; margin-left: 4px; font-size: 12px; }
 
 @keyframes rareBannerIn {
   from { transform: translateY(-80px) scale(0.5); opacity: 0; }
@@ -696,18 +691,17 @@ body {
 }
 
 .toast {
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  font-family: var(--font);
-  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
-  max-width: 300px;
-  backdrop-filter: blur(8px);
-  border: 1px solid hsla(0,0%,100%,0.1);
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: "Courier New", monospace;
+  animation: toastIn 0.2s ease, toastOut 0.2s ease 2.5s forwards;
+  max-width: 260px;
+  border: 2px solid;
+  background: rgba(0, 0, 0, 0.8);
 }
-.toast.success { background: hsla(142,76%,36%,0.9); color: white; }
-.toast.error { background: hsla(0,84%,60%,0.9); color: white; }
-.toast.info { background: hsla(217,91%,60%,0.9); color: white; }
+.toast.success { background: rgba(22, 101, 52, 0.8); border-color: #22c55e; color: #22c55e; }
+.toast.error { background: rgba(127, 29, 29, 0.8); border-color: #ef4444; color: #ef4444; }
+.toast.info { background: rgba(30, 58, 138, 0.8); border-color: #3b82f6; color: #3b82f6; }
 
 @keyframes toastIn {
   from { transform: translateX(100px); opacity: 0; }
@@ -1222,36 +1216,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 15px;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
   font-weight: 700;
+  font-family: "Courier New", monospace;
   color: #fff;
-  background: rgba(0, 0, 0, 0.82);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  backdrop-filter: blur(6px);
-  animation: spawnAlertIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  max-width: 90vw;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  animation: spawnAlertIn 0.3s ease;
+  max-width: 80vw;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .rare-spawn-alert.diamond {
   border-color: rgba(0, 206, 209, 0.6);
-  text-shadow: 0 0 10px rgba(0, 206, 209, 0.6);
-  box-shadow: 0 4px 20px rgba(0, 206, 209, 0.25);
+  text-shadow: 0 0 6px rgba(0, 206, 209, 0.6);
 }
 
 .rare-spawn-alert.jackpot {
-  background: rgba(0, 0, 0, 0.88);
+  background: rgba(0, 0, 0, 0.8);
   border-color: rgba(255, 215, 0, 0.8);
-  text-shadow: 0 0 12px #FFD700, 0 0 24px #FF00FF;
-  box-shadow: 0 4px 24px rgba(255, 215, 0, 0.4);
+  text-shadow: 0 0 6px #FFD700;
 }
 
-.rare-spawn-emoji { font-size: 18px; }
-.rare-spawn-text { font-size: 15px; }
+.rare-spawn-emoji { font-size: 12px; }
+.rare-spawn-text { font-size: 11px; }
 
 @keyframes spawnAlertIn {
   0% { transform: translateY(-30px) scale(0.85); opacity: 0; }
