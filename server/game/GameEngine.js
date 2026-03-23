@@ -182,17 +182,25 @@ class GameEngine {
       if (anchorPickaxe) {
         const shouldBeWeak = playerPickaxeCount <= WEAK_MODE_THRESHOLD;
         if (shouldBeWeak && anchorPickaxe.type !== 'system_weak') {
-          anchorPickaxe.color = '#888888';
-          anchorPickaxe.speedMult = 0.05;
-          anchorPickaxe.scale = 0.8;
-          anchorPickaxe.gravityMult = 0.5;
+          const weakDef = PICKAXE_TYPES['system_weak'];
           anchorPickaxe.type = 'system_weak';
+          anchorPickaxe.color = weakDef.color;
+          anchorPickaxe.speedMult = weakDef.speedMult;
+          anchorPickaxe.scale = weakDef.scale;
+          anchorPickaxe.gravityMult = weakDef.gravityMult;
+          anchorPickaxe.width = GAME.BLOCK_SIZE * weakDef.scale;
+          anchorPickaxe.height = GAME.BLOCK_SIZE * weakDef.scale;
+          anchorPickaxe.bounceEnergy = 200 * weakDef.speedMult;
         } else if (!shouldBeWeak && anchorPickaxe.type === 'system_weak') {
-          anchorPickaxe.color = '#FF00FF';
-          anchorPickaxe.speedMult = 0.1;
-          anchorPickaxe.scale = 1.5;
-          anchorPickaxe.gravityMult = 0.3;
+          const fullDef = PICKAXE_TYPES['system'];
           anchorPickaxe.type = 'system';
+          anchorPickaxe.color = fullDef.color;
+          anchorPickaxe.speedMult = fullDef.speedMult;
+          anchorPickaxe.scale = fullDef.scale;
+          anchorPickaxe.gravityMult = fullDef.gravityMult;
+          anchorPickaxe.width = GAME.BLOCK_SIZE * fullDef.scale;
+          anchorPickaxe.height = GAME.BLOCK_SIZE * fullDef.scale;
+          anchorPickaxe.bounceEnergy = 200 * fullDef.speedMult;
         }
       }
 
@@ -242,24 +250,16 @@ class GameEngine {
             const isSystem = pickaxe.ownerId === '__system__';
             const player = isSystem ? null : this.players.get(pickaxe.ownerId);
             if (player) {
-              // Combo calculation
-              const comboMult = this._getComboMultiplier(pickaxe, now);
-              const finalReward = Math.round(reward * comboMult * this.rewardMultiplier);
-
-              player.earn(finalReward, block.name);
-              player.trackBlockDestroyed(block.type); // Quest tracking
-              pickaxe.addReward(finalReward);
-
-              // Jackpot block destroyed! — pay out the entire pool
+              // Jackpot block destroyed! — pay out the entire pool directly (reward=0 from constants)
               if (block.type === 'jackpot') {
                 this.jackpotBlockExists = false;
                 this._jackpotNeedsRespawn = false;
                 const jackpotReward = this.jackpotPool;
                 this.jackpotPool = 0;
 
-                // Override the normal finalReward with jackpot pool payout
-                player.earn(jackpotReward - finalReward, block.name); // add diff (finalReward already added above)
-                pickaxe.addReward(jackpotReward - finalReward);        // sync pickaxe stats
+                player.earn(jackpotReward, block.name);
+                player.trackBlockDestroyed(block.type); // Quest tracking
+                pickaxe.addReward(jackpotReward);
 
                 this.io.to(this.roomName).emit('jackpotBlockDestroyed', {
                   playerName: pickaxe.ownerName,
@@ -276,9 +276,22 @@ class GameEngine {
                   reward: jackpotReward,
                   time: now,
                 });
+
+                // Jackpot handled — skip normal reward processing
+                pickaxe.bounceOff(block);
+                break;
               }
+
+              // Combo calculation (non-jackpot blocks)
+              const comboMult = this._getComboMultiplier(pickaxe, now);
+              const finalReward = Math.round(reward * comboMult * this.rewardMultiplier);
+
+              player.earn(finalReward, block.name);
+              player.trackBlockDestroyed(block.type); // Quest tracking
+              pickaxe.addReward(finalReward);
+
               // High-value block notification (reward >= 1000)
-              else if (reward >= 1000) {
+              if (reward >= 1000) {
                 this.jackpots.push({
                   playerName: pickaxe.ownerName,
                   blockName: block.name,
@@ -615,7 +628,7 @@ class GameEngine {
   buyPickaxe(player, type) {
     const def = PICKAXE_TYPES[type];
     if (!def) return { error: 'Invalid pickaxe type' };
-    if (type === 'system') return { error: 'Invalid pickaxe type' };
+    if (type === 'system' || type === 'system_weak') return { error: 'Invalid pickaxe type' };
 
     // Max 3 pickaxes per player per field
     const activeCount = Array.from(this.pickaxes.values())

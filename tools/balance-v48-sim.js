@@ -25,10 +25,10 @@ const BLK = {
 
 // v4.8 가격
 const PICKS = {
-  basic: { price: 3200, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  power: { price: 8300, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  light: { price: 3700, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
-  swift: { price: 3400, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
+  basic: { price: 3100, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  power: { price: 8100, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  light: { price: 3600, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
+  swift: { price: 3300, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
 };
 
 const TNT_DEF   = { price: 8000, damage: 30, radiusX: 2, radiusDown: 3 };
@@ -64,47 +64,42 @@ function pickBlock(pool) {
 
 function getDynamicSysConfig(playerPicks) {
   const isWeak = playerPicks <= WEAK_MODE_THRESHOLD;
-  let sysCnt = 0;
+
+  // DYNAMIC_THRESHOLDS의 sysCnt = 동적 추가 수 (앵커 제외) — GameEngine과 동일 해석
+  let dynamicCnt = 0;
   for (const t of DYNAMIC_THRESHOLDS) {
-    if (playerPicks >= t.minPicks) { sysCnt = t.sysCnt; break; }
+    if (playerPicks >= t.minPicks) { dynamicCnt = t.sysCnt; break; }
   }
-  // 앵커 1개 항상 포함 (weak 모드에서도 앵커는 존재)
-  // sysCnt = 0이면 weak 앵커 1개
-  const anchorMode = isWeak ? SYS_WEAK : SYS_FULL;
-  const totalSys = Math.max(1, sysCnt === 0 ? 1 : sysCnt);
-  // 실제로: 앵커(1) + 다이나믹(sysCnt) = 최대 4
-  // sysCnt는 다이나믹 개수 (THRESHOLDS 값이 0이면 다이나믹 0개, 앵커만)
-  // 하지만 THRESHOLDS에서 minPicks=4부터 sysCnt=1이므로:
-  // playerPicks 0~3: sysCnt=0 → 총 sys=1 (앵커, weak)
-  // playerPicks 4~20: sysCnt=1 → 총 sys=2 (앵커 full + 다이나믹 1)
-  // ...
-  // 수정: sysCnt가 다이나믹 개수가 아니라 총 개수라면:
-  // playerPicks 0~3: 1 weak anchor
-  // playerPicks 4~20: 1 full anchor (sysCnt=1)
-  // 즉 THRESHOLDS의 sysCnt = 앵커 포함 총 sys 수
+  dynamicCnt = Math.min(dynamicCnt, 3); // MAX_SYSTEM_PICKAXES(4) - 1 앵커
+
+  const totalSys = 1 + dynamicCnt; // 앵커(1) + 동적
+
   return {
-    totalSys: Math.max(1, sysCnt === 0 ? 1 : sysCnt),
+    totalSys,
+    dynamicCnt,
     anchorMode: isWeak ? SYS_WEAK : SYS_FULL,
     dynamicMode: SYS_FULL,
     isWeak,
   };
 }
 
-function calcSteal(playerPicks, pc) {
-  const { totalSys, anchorMode, isWeak } = getDynamicSysConfig(playerPicks);
-  const anchorRate = enc(anchorMode);
-  const dynamicRate = enc(SYS_FULL);
-  // 앵커 1개 + 나머지 (totalSys-1)개 다이나믹
-  const totalSysRate = anchorRate + (totalSys - 1) * dynamicRate;
-  const totalPlayerRate = playerPicks * enc(PICKS.basic) * 1.0; // basic 기준 (실제는 믹스)
-  // 더 정확하게: 가중 평균 player rate
+function calcSteal(playerPicks) {
+  const { totalSys, isWeak } = getDynamicSysConfig(playerPicks);
+
+  // 앵커는 weak/full 모드에 따라 rate 다름
+  const anchorRate = isWeak ? enc(SYS_WEAK) : enc(SYS_FULL);
+  // 동적 곡괭이는 항상 full
+  const dynamicRate = (totalSys - 1) * enc(SYS_FULL);
+  const totalSysRate = anchorRate + dynamicRate;
+
   const avgPlayerRate =
     PURCHASE_MIX.basic * enc(PICKS.basic) +
     PURCHASE_MIX.power * enc(PICKS.power) +
     PURCHASE_MIX.light * enc(PICKS.light) +
     PURCHASE_MIX.swift * enc(PICKS.swift);
-  const weightedPlayerRate = playerPicks * avgPlayerRate;
-  return totalSysRate / (totalSysRate + weightedPlayerRate);
+
+  const totalPlayerRate = playerPicks * avgPlayerRate;
+  return totalSysRate / (totalSysRate + totalPlayerRate);
 }
 
 function simPickaxe(def, pool, steal, rate) {
@@ -194,7 +189,7 @@ function simPickaxeDistribution(pool, steal, rate, iters) {
 const pool = buildPool();
 
 console.log('=== PIKIT v4.8 Balance Simulation ===');
-console.log('Prices: basic=3200 power=8300 light=3700 swift=3400');
+console.log('Prices: basic=3100 power=8100 light=3600 swift=3300');
 console.log('Adaptive sys: max 4, weak mode (<=3 player picks)\n');
 
 const rates = {};
@@ -208,7 +203,7 @@ console.log('--------|-------|--------------|---------|-----------|------------'
 for (const pc of [1, 2, 5, 10, 15, 20, 30, 50, 80, 100]) {
   const avgPicks = pc * 1.5;
   const { totalSys, anchorMode, isWeak } = getDynamicSysConfig(avgPicks);
-  const steal = calcSteal(avgPicks, pc);
+  const steal = calcSteal(avgPicks);
 
   // per-type ROI
   let bS = 0, bR = 0;
@@ -239,7 +234,7 @@ for (const pc of [1, 2, 5, 10, 15, 20, 30, 50, 80, 100]) {
 
 // per-pickaxe distribution (basic @ 5p)
 console.log('\n--- Per-Pickaxe Distribution (basic @ 5 players) ---');
-const steal5p = calcSteal(7.5, 5);
+const steal5p = calcSteal(7.5);
 const dist = simPickaxeDistribution(pool, steal5p, rates.basic, 30000);
 console.log(`P5=${dist.p5}%  P10=${dist.p10}%  P25=${dist.p25}%  P50=${dist.p50}%  P75=${dist.p75}%  P90=${dist.p90}%  P95=${dist.p95}%`);
 console.log(`Profit runs (>=100% recovery): ${dist.profit_pct}%`);

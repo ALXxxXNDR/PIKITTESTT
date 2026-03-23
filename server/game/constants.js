@@ -29,7 +29,7 @@ const GAME = {
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 3200,
+    price: 3100,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -41,7 +41,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 8300,
+    price: 8100,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -53,7 +53,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 3700,
+    price: 3600,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -65,7 +65,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 3400,
+    price: 3300,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,
@@ -128,7 +128,7 @@ const BLOCK_TYPES = {
     name: 'Jackpot Block',
     hp: 1500,              // Raid boss — requires sustained team damage (was 300)
     weight: 0,             // NOT in normal pool — special conditional spawn
-    reward: 250000,        // 250K credits (overridden by dynamic jackpotPool at runtime)
+    reward: 0,             // 0 — pool-based payout only (dynamic jackpotPool at runtime)
     rewardType: 'fixed',
     color: '#FF00FF',
     texture: 'jackpot.png',
@@ -237,12 +237,10 @@ const BLOCK_TYPES = {
 // ========== Jackpot System Config ==========
 // v4.8: pool-based spawn condition, HP 1500, dynamic reward from jackpotPool
 const JACKPOT_CONFIG = {
-  SPAWN_THRESHOLD: 0,        // No longer used — replaced by pool-based condition
+  // SPAWN_THRESHOLD, REWARD, MIN_PLAYERS are v4.8 legacy — replaced by pool-based system
   SPAWN_CHANCE: 0.0001,      // 0.01% chance per eligible block position (was 0.05%)
   RESPAWN_CHANCE: 0.00001,   // 0.001% re-spawn chance after jackpot escapes viewport
-  REWARD: 0,                 // Fixed reward deprecated — dynamic pool used instead
   HP: 1500,                  // Raid boss HP (was 300) — requires sustained team effort
-  MIN_PLAYERS: 0,            // Player count condition removed (pool-based is sufficient)
 };
 
 // ========== Jackpot Pool Config ==========
