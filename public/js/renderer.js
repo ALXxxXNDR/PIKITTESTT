@@ -95,6 +95,10 @@ const Renderer = {
         base: '#7a7a7a', light: '#919191', dark: '#5c5c5c', accent: '#686868',
         pattern: 'ore', oreColor: '#00CED1', oreGlow: '#7fffd4'
       },
+      netherite_block: {
+        base: '#4A3728', light: '#6B5344', dark: '#2D2018', accent: '#C8A882',
+        pattern: 'netherite',
+      },
       bedrock: {
         base: '#2a2a2a', light: '#3d3d3d', dark: '#1a1a1a', accent: '#333333',
         pattern: 'bedrock'
@@ -153,6 +157,9 @@ const Renderer = {
       case 'ore':
         this._drawStonePattern(ctx, grid, px, { ...design, base: design.base, light: design.light, dark: design.dark });
         this._drawOrePattern(ctx, grid, px, design);
+        break;
+      case 'netherite':
+        this._drawNetheritePattern(ctx, grid, px, design);
         break;
       case 'bedrock':
         this._drawBedrockPattern(ctx, grid, px, design);
@@ -267,6 +274,35 @@ const Renderer = {
     }
   },
 
+  _drawNetheritePattern(ctx, grid, px, design) {
+    // Scattered dark patches
+    const seed = 55;
+    for (let y = 0; y < grid; y++) {
+      for (let x = 0; x < grid; x++) {
+        const r = this._pseudoRandom(x * 9 + y * 11 + seed);
+        if (r < 0.2) {
+          ctx.fillStyle = design.dark;
+          ctx.fillRect(x * px, y * px, px, px);
+        } else if (r < 0.35) {
+          ctx.fillStyle = design.light;
+          ctx.fillRect(x * px, y * px, px, px);
+        }
+      }
+    }
+    // Gold accent specks (signature netherite look)
+    ctx.fillStyle = design.accent;
+    const accentPositions = [
+      [2,2], [5,3], [7,6], [3,7], [6,1], [1,5], [8,4], [4,8]
+    ];
+    for (const [gx, gy] of accentPositions) {
+      ctx.fillRect(gx * px, gy * px, px, px);
+    }
+    // Horizontal vein-like cracks
+    ctx.fillStyle = design.dark;
+    ctx.fillRect(1 * px, 4 * px, 3 * px, px);
+    ctx.fillRect(6 * px, 8 * px, 2 * px, px);
+  },
+
   _drawBedrockPattern(ctx, grid, px, design) {
     for (let y = 0; y < grid; y++) {
       for (let x = 0; x < grid; x++) {
@@ -317,6 +353,7 @@ const Renderer = {
       'diamond_pickaxe': { handle: '#8B5E3C', head: '#00CED1', accent: '#7FFFD4' },
       'golden_pickaxe': { handle: '#8B5E3C', head: '#FFD700', accent: '#FFEC8B' },
       'iron_pickaxe': { handle: '#8B5E3C', head: '#C0C0C0', accent: '#E8E8E8' },
+      'elite_pickaxe': { handle: '#8B5E3C', head: '#9B59B6', accent: '#D2A5E8' },
     };
 
     for (const [name, colors] of Object.entries(types)) {
