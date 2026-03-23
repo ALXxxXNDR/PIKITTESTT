@@ -263,6 +263,26 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Dev: spawn test pickaxe (free, no balance deduction, localhost only)
+  socket.on('devSpawnPickaxe', (data) => {
+    if (process.env.NODE_ENV === 'production') return;
+    const engine = getPlayerEngine(socket);
+    if (!engine) return;
+    const player = engine.players.get(socket.id);
+    if (!player) return;
+    const type = (data && data.type) || 'basic';
+    const def = PICKAXE_TYPES[type];
+    if (!def || type === 'system') return;
+
+    const Pickaxe = require('./game/Pickaxe');
+    const pickaxe = new Pickaxe(type, player.id, player.name);
+    pickaxe.y = engine.cameraY - GAME.INTERNAL_HEIGHT / 2;
+    pickaxe.x = engine._findEmptySpawnX(pickaxe.y);
+    engine.pickaxes.set(pickaxe.id, pickaxe);
+    player.activePickaxes.push(pickaxe.id);
+    socket.emit('purchaseResult', { success: true, item: pickaxe.serialize(), player: player.serialize() });
+  });
+
   // Add balance (rate-limited: max 5 times per 30 seconds, fixed 10K)
   socket.on('addBalance', () => {
     const player = findPlayer(socket.id) || (socket._pendingPlayer);

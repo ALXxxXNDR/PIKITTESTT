@@ -192,4 +192,5 @@ const GameSocket = {
   sendChat(message) { this.socket.emit('chatMessage', { message }); },
   syncDeposit(txHash) { this.socket.emit('syncDeposit', { txHash }); },
   syncWithdraw(txHash) { this.socket.emit('syncWithdraw', { txHash }); },
+  devSpawnPickaxe(type) { this.socket.emit('devSpawnPickaxe', { type }); },
 };

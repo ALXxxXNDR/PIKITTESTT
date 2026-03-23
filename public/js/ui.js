@@ -171,6 +171,14 @@ const UI = {
   _requireWallet() {
     if (GameSocket.player) return true; // Already logged in
 
+    // Dev mode: localhost — allow nickname login without wallet
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      const name = prompt('Dev Login — Enter nickname:') || 'Tester';
+      GameSocket.join(name.substring(0, 12));
+      this.showToast('Dev login...', 'info');
+      return false; // Will proceed after 'joined' event
+    }
+
     if (window.WalletAPI) {
       if (window.WalletAPI.isConnected()) {
         // Wallet connected but game login not done — trigger login flow
@@ -528,7 +536,7 @@ const UI = {
       'text-align: center',
       'margin-bottom: 8px',
     ].join('; ');
-    countIndicator.textContent = `Active Pickaxes: ${activeCount}/3`;
+    countIndicator.textContent = `Active Pickaxes: ${activeCount}/1`;
     pickaxeGrid.appendChild(countIndicator);
 
     for (const [type, def] of Object.entries(pickaxeTypes)) {
@@ -603,6 +611,37 @@ const UI = {
       item.appendChild(info);
       item.addEventListener('click', () => GameSocket.buyTNT(type));
       tntGrid.appendChild(item);
+    }
+
+    // Dev spawn panel (localhost only)
+    const devPanel = document.getElementById('dev-spawn-panel');
+    if (devPanel && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      devPanel.style.display = '';
+      const devGrid = document.getElementById('dev-spawn-items');
+      devGrid.innerHTML = '';
+      for (const [type, def] of Object.entries(pickaxeTypes)) {
+        const btn = document.createElement('div');
+        btn.className = 'shop-item';
+        btn.style.cursor = 'pointer';
+        const texName = (def.texture || '').replace('.png', '');
+        const cachedPickaxe = Renderer.pixelPickaxeCache[texName];
+        if (cachedPickaxe) {
+          const mc = document.createElement('canvas');
+          mc.width = 36; mc.height = 36;
+          mc.className = 'shop-item-icon';
+          mc.style.imageRendering = 'pixelated';
+          const ctx = mc.getContext('2d');
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(cachedPickaxe, 0, 0, 36, 36);
+          btn.appendChild(mc);
+        }
+        const info = document.createElement('div');
+        info.className = 'shop-item-info';
+        info.innerHTML = `<div class="shop-item-name">${this._esc(def.name)}</div><div class="shop-item-price" style="color:#22c55e">FREE (test)</div>`;
+        btn.appendChild(info);
+        btn.addEventListener('click', () => GameSocket.devSpawnPickaxe(type));
+        devGrid.appendChild(btn);
+      }
     }
   },
 
