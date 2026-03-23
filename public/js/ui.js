@@ -10,7 +10,8 @@ const UI = {
   lbOpen: false,
   myinfoOpen: false,
   questOpen: false,
-  notificationsEnabled: true,
+  spawnAlertsEnabled: true,
+  rewardAlertsEnabled: true,
   _questData: null, // Cached quest data
 
   // HTML escape to prevent XSS
@@ -47,13 +48,21 @@ const UI = {
     document.getElementById('menu-btn').addEventListener('click', () => this.toggleMenu());
     document.getElementById('menu-close-btn').addEventListener('click', () => this.closeMenu());
 
-    // Notification toggle
-    const notifToggle = document.getElementById('notif-toggle-btn');
-    if (notifToggle) {
-      notifToggle.addEventListener('click', () => {
-        this.notificationsEnabled = !this.notificationsEnabled;
-        notifToggle.textContent = this.notificationsEnabled ? '🔔' : '🔕';
-        notifToggle.title = this.notificationsEnabled ? 'Notifications ON' : 'Notifications OFF';
+    // Notification toggles (spawn / reward)
+    const spawnBtn = document.getElementById('notif-spawn-btn');
+    const rewardBtn = document.getElementById('notif-reward-btn');
+    if (spawnBtn) {
+      spawnBtn.addEventListener('click', () => {
+        this.spawnAlertsEnabled = !this.spawnAlertsEnabled;
+        spawnBtn.className = 'notif-toggle-btn ' + (this.spawnAlertsEnabled ? 'on' : 'off');
+        spawnBtn.title = 'Spawn alerts ' + (this.spawnAlertsEnabled ? 'ON' : 'OFF');
+      });
+    }
+    if (rewardBtn) {
+      rewardBtn.addEventListener('click', () => {
+        this.rewardAlertsEnabled = !this.rewardAlertsEnabled;
+        rewardBtn.className = 'notif-toggle-btn ' + (this.rewardAlertsEnabled ? 'on' : 'off');
+        rewardBtn.title = 'Reward alerts ' + (this.rewardAlertsEnabled ? 'ON' : 'OFF');
       });
     }
 
@@ -858,7 +867,7 @@ const UI = {
 
   // ===== Jackpot Notification =====
   showJackpot(data) {
-    if (!this.notificationsEnabled) return;
+    if (!this.rewardAlertsEnabled) return;
     const overlay = document.getElementById('jackpot-overlay');
     const alert = document.createElement('div');
     alert.className = 'jackpot-alert';
@@ -870,7 +879,7 @@ const UI = {
 
   // ===== Rare Block Spawn Alert (block appeared in field) =====
   showRareBlockSpawnAlert(data) {
-    if (!this.notificationsEnabled) return;
+    if (!this.spawnAlertsEnabled) return;
     let emoji = '💎';
     let colorClass = 'diamond';
 
@@ -1068,7 +1077,7 @@ const UI = {
 
   // ===== Rare Block Notification (block destroyed by player) =====
   showRareBlockNotification(data) {
-    if (!this.notificationsEnabled) return;
+    if (!this.rewardAlertsEnabled) return;
     let colorClass = 'gold';
     let emoji = '💎';
 

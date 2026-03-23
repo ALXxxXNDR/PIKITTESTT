@@ -680,6 +680,28 @@ body {
 }
 
 /* === Toast Notifications === */
+/* Notification toggle buttons */
+.notif-toggle-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #555;
+  color: #aaa;
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  transition: none;
+}
+.notif-toggle-btn.on {
+  border-color: #22c55e;
+  color: #22c55e;
+}
+.notif-toggle-btn.off {
+  border-color: #555;
+  color: #555;
+  text-decoration: line-through;
+}
+
 #toast-container {
   position: fixed;
   bottom: 80px;

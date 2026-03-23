@@ -27,8 +27,11 @@
       <!-- Jackpot / Notification Overlay -->
       <div id="jackpot-overlay"></div>
 
-      <!-- Notification Toggle -->
-      <button id="notif-toggle-btn" class="hud-btn" title="Notifications ON" style="position:fixed;top:8px;right:8px;z-index:50;background:rgba(0,0,0,0.6);border:2px solid #555;color:#fff;font-size:16px;padding:4px 8px;cursor:pointer;font-family:'Courier New',monospace;">🔔</button>
+      <!-- Notification Toggle Panel -->
+      <div id="notif-toggle-panel" style="position:fixed;top:48px;right:8px;z-index:50;display:flex;flex-direction:column;gap:3px;font-family:'Courier New',monospace;">
+        <button id="notif-spawn-btn" class="notif-toggle-btn on" title="Spawn alerts ON">📢 Spawn</button>
+        <button id="notif-reward-btn" class="notif-toggle-btn on" title="Reward alerts ON">💰 Reward</button>
+      </div>
 
       <!-- Top HUD Bar (always visible) -->
       <div id="top-hud">
