@@ -19,10 +19,10 @@ const BLK = {
 
 // v4.9 가격 (v4.8에서 combo 제거 후 HE 보정 -5%)
 const PICKS = {
-  basic: { price: 2950, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  power: { price: 7700, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  light: { price: 3400, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
-  swift: { price: 3150, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
+  basic: { price: 3050, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  power: { price: 7950, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  light: { price: 3500, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
+  swift: { price: 3250, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
 };
 
 const TNT_DEF   = { price: 8000, damage: 30, radiusX: 2, radiusDown: 3 };
@@ -33,10 +33,10 @@ const SYS_FULL = { damage: 5, scale: 1.5, gravityMult: 0.3, speedMult: 0.1 };
 const SYS_WEAK = { damage: 5, scale: 0.8, gravityMult: 0.5, speedMult: 0.03 };
 const WEAK_MODE_THRESHOLD = 3; // player picks ≤ 3 → weak mode
 const DYNAMIC_THRESHOLDS = [
-  { minPicks: 46, sysCnt: 4 },
-  { minPicks: 21, sysCnt: 3 },
-  { minPicks: 11, sysCnt: 2 },
-  { minPicks: 4,  sysCnt: 1 },
+  { minPicks: 46, sysCnt: 3 },
+  { minPicks: 21, sysCnt: 2 },
+  { minPicks: 11, sysCnt: 1 },
+  { minPicks: 4,  sysCnt: 0 },
   { minPicks: 0,  sysCnt: 0 },
 ];
 
@@ -178,7 +178,7 @@ function simPickaxeDistribution(pool, steal, rate, iters) {
 const pool = buildPool();
 
 console.log('=== PIKIT v4.9 Balance Simulation (combo removed) ===');
-console.log('Prices: basic=2950 power=7700 light=3400 swift=3150');
+console.log('Prices: basic=3050 power=7950 light=3500 swift=3250');
 console.log('Adaptive sys: max 4, weak mode (<=3 player picks)\n');
 
 const rates = {};

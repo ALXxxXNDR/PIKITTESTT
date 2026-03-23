@@ -30,7 +30,7 @@ const GAME = {
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 2950,
+    price: 3050,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -42,7 +42,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 7700,
+    price: 7950,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -54,7 +54,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 3400,
+    price: 3500,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -66,7 +66,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 3150,
+    price: 3250,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,

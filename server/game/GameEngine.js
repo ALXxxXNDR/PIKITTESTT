@@ -10,10 +10,10 @@ const MAX_PICKAXES_PER_PLAYER = 3;
 // Adaptive system pickaxe scaling thresholds (v4.8)
 // Sorted descending by minPicks — first matching entry wins
 const DYNAMIC_SYSTEM_RATIO_THRESHOLDS = [
-  { minPicks: 46, sysCnt: 4 },  // v4.8 sim-verified
-  { minPicks: 21, sysCnt: 3 },
-  { minPicks: 11, sysCnt: 2 },
-  { minPicks: 4,  sysCnt: 1 },
+  { minPicks: 46, sysCnt: 3 },  // anchor + 3 dynamic = 4 total
+  { minPicks: 21, sysCnt: 2 },  // anchor + 2 dynamic = 3 total
+  { minPicks: 11, sysCnt: 1 },  // anchor + 1 dynamic = 2 total
+  { minPicks: 4,  sysCnt: 0 },  // anchor only = 1 total (full mode)
   { minPicks: 0,  sysCnt: 0 },  // solo (≤3 player picks): anchor only (weak mode)
 ];
 const WEAK_MODE_THRESHOLD = 3;   // player pickaxe count ≤ this → anchor enters weak mode
