@@ -10,9 +10,9 @@ const MAX_PICKAXES_PER_PLAYER = 3;
 // Adaptive system pickaxe scaling thresholds (v4.8)
 // Sorted descending by minPicks — first matching entry wins
 const DYNAMIC_SYSTEM_RATIO_THRESHOLDS = [
-  { minPicks: 81, sysCnt: 4 },
-  { minPicks: 51, sysCnt: 3 },
-  { minPicks: 21, sysCnt: 2 },
+  { minPicks: 46, sysCnt: 4 },  // v4.8 sim-verified
+  { minPicks: 21, sysCnt: 3 },
+  { minPicks: 11, sysCnt: 2 },
   { minPicks: 4,  sysCnt: 1 },
   { minPicks: 0,  sysCnt: 0 },  // solo (≤3 player picks): anchor only (weak mode)
 ];

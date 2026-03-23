@@ -93,7 +93,7 @@ const PICKAXE_TYPES = {
     damage: 5,
     scale: 0.8,
     gravityMult: 0.5,
-    speedMult: 0.05,
+    speedMult: 0.03,   // v4.8 sim-verified: 0.05→0.03 for HE ≤55% solo
     lifetime: 60000,
     texture: 'system_pickaxe.png',
     color: '#888888',
@@ -261,9 +261,11 @@ const COMBO = {
   THRESHOLDS: [0, 3, 6, 10, 15, 25],
 };
 
-// House edge target — 55% at 5 players, 54% at 10 players (v4.7 simulation-verified)
-// Actual range: ~55% @5p, ~54% @10p, ~53% @20p, ~53% @40p
-const HOUSE_EDGE = 0.55;
+// House edge target — v4.8 simulation-verified (tools/balance-v48-sim.js)
+// Actual range: ~54% @1p, ~53% @2-15p, ~52% @20-30p, ~51% @50p, ~51% @80-100p
+// system_weak speedMult=0.03 (was 0.05) — keeps solo HE ≤55%
+// DYNAMIC_SYSTEM_RATIO_THRESHOLDS in GameEngine.js updated for tighter control
+const HOUSE_EDGE = 0.53;
 
 // Initial balance
 const INITIAL_BALANCE = 10000;
