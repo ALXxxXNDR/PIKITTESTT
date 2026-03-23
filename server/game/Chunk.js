@@ -1,5 +1,5 @@
 const Block = require('./Block');
-const { BLOCK_TYPES, GAME, JACKPOT_CONFIG } = require('./constants');
+const { BLOCK_TYPES, GAME, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
 
 // Rare block types that trigger spawn alerts (top tier only)
 // diamond=1%, jackpot=conditional — highest rarity only
@@ -80,21 +80,23 @@ class Chunk {
   }
 
   // Try to spawn a Jackpot block (conditional, only 1 at a time)
+  // v4.8: pool-based spawn condition — jackpotPool must reach MIN_POOL_TO_SPAWN
   _trySpawnJackpot() {
     if (!this.gameEngine) return false;
 
     // Only one jackpot block can exist at a time
     if (this.gameEngine.jackpotBlockExists) return false;
 
-    // Minimum players required for jackpot spawn
-    if (this.gameEngine.players.size < JACKPOT_CONFIG.MIN_PLAYERS) return false;
+    // Pool must be large enough to warrant a jackpot block
+    const pool = this.gameEngine.jackpotPool || 0;
+    if (pool < JACKPOT_POOL_CONFIG.MIN_POOL_TO_SPAWN) return false;
 
-    // Check if enough credits have been spent since last jackpot
-    const creditsSinceLastJackpot = this.gameEngine.creditsSinceLastJackpot || 0;
-    if (creditsSinceLastJackpot < JACKPOT_CONFIG.SPAWN_THRESHOLD) return false;
+    // Use standard spawn chance or re-spawn chance depending on history
+    const chance = this.gameEngine._jackpotNeedsRespawn
+      ? JACKPOT_CONFIG.RESPAWN_CHANCE   // 0.001% — rare re-spawn after escape
+      : JACKPOT_CONFIG.SPAWN_CHANCE;    // 0.01%  — standard first spawn
 
-    // Roll 0.05% chance per eligible block position
-    return Math.random() < JACKPOT_CONFIG.SPAWN_CHANCE;
+    return Math.random() < chance;
   }
 
   // Find alive block at position
