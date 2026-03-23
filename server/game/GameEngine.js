@@ -1,7 +1,7 @@
 const Chunk = require('./Chunk');
 const Pickaxe = require('./Pickaxe');
 const TNT = require('./TNT');
-const { GAME, PICKAXE_TYPES, TNT_TYPES, COMBO, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
+const { GAME, PICKAXE_TYPES, TNT_TYPES, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
 
 // Target number of system pickaxes to keep active at all times (anchor)
 const SYSTEM_PICKAXE_TARGET = 1;
@@ -282,9 +282,7 @@ class GameEngine {
                 break;
               }
 
-              // Combo calculation (non-jackpot blocks)
-              const comboMult = this._getComboMultiplier(pickaxe, now);
-              const finalReward = Math.round(reward * comboMult * this.rewardMultiplier);
+              const finalReward = Math.round(reward * this.rewardMultiplier);
 
               player.earn(finalReward, block.name);
               player.trackBlockDestroyed(block.type); // Quest tracking
@@ -397,26 +395,6 @@ class GameEngine {
 
     // Mark explosion time for tick-based removal (avoid stale setTimeout)
     tnt.explodedAt = now;
-  }
-
-  // ========== Combo System ==========
-  _getComboMultiplier(pickaxe, now) {
-    if (now - pickaxe.lastHitTime < COMBO.TIMEOUT) {
-      pickaxe.combo++;
-    } else {
-      pickaxe.combo = 1;
-    }
-    pickaxe.lastHitTime = now;
-
-    // Determine combo stage
-    let mult = COMBO.MULTIPLIERS[0];
-    for (let i = COMBO.THRESHOLDS.length - 1; i >= 0; i--) {
-      if (pickaxe.combo >= COMBO.THRESHOLDS[i]) {
-        mult = COMBO.MULTIPLIERS[i];
-        break;
-      }
-    }
-    return mult;
   }
 
   // ========== Camera ==========

@@ -5,12 +5,6 @@
  * Target: HE 52-53% @ 2-30 players
  */
 
-// v4.8 파라미터 (constants.js와 동기화)
-const COMBO = {
-  MULTIPLIERS: [1, 1.05, 1.1, 1.2, 1.35, 1.5],
-  THRESHOLDS: [0, 3, 6, 10, 15, 25],
-};
-
 const BLK = {
   diamond_block: { hp: 180, weight: 1,  reward: 4500, tntResist: true },
   gold_block:    { hp: 90,  weight: 2,  reward: 1800, tntResist: true },
@@ -23,12 +17,12 @@ const BLK = {
   clay:          { hp: 2,   weight: 10, reward: 24   },
 };
 
-// v4.8 가격
+// v4.9 가격 (v4.8에서 combo 제거 후 HE 보정 -5%)
 const PICKS = {
-  basic: { price: 3100, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  power: { price: 8100, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
-  light: { price: 3600, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
-  swift: { price: 3300, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
+  basic: { price: 2950, damage: 3, scale: 0.8,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  power: { price: 7700, damage: 5, scale: 1.0,  gravityMult: 1.0, speedMult: 1.0, lifetime: 30000 },
+  light: { price: 3400, damage: 4, scale: 0.7,  gravityMult: 0.5, speedMult: 1.0, lifetime: 35000 },
+  swift: { price: 3150, damage: 3, scale: 0.75, gravityMult: 1.0, speedMult: 1.6, lifetime: 25000 },
 };
 
 const TNT_DEF   = { price: 8000, damage: 30, radiusX: 2, radiusDown: 3 };
@@ -105,20 +99,15 @@ function calcSteal(playerPicks) {
 function simPickaxe(def, pool, steal, rate) {
   const lt = def.lifetime / 1000;
   const tot = Math.floor(rate * lt);
-  let rew = 0, combo = 0, hp = 0, cur = null;
+  let rew = 0, hp = 0, cur = null;
   for (let i = 0; i < tot; i++) {
-    if (Math.random() < steal) { combo = 0; continue; }
+    if (Math.random() < steal) { continue; }
     if (hp <= 0) { cur = pickBlock(pool); hp = cur.hp; }
     hp -= def.damage;
     if (hp <= 0) {
-      combo++;
-      let cm = COMBO.MULTIPLIERS[0];
-      for (let j = COMBO.THRESHOLDS.length - 1; j >= 0; j--)
-        if (combo >= COMBO.THRESHOLDS[j]) { cm = COMBO.MULTIPLIERS[j]; break; }
-      rew += Math.round(cur.reward * cm);
+      rew += cur.reward;
       hp = 0;
     }
-    if (hp <= 0 && Math.random() < 0.15) combo = 0;
   }
   return rew;
 }
@@ -188,8 +177,8 @@ function simPickaxeDistribution(pool, steal, rate, iters) {
 
 const pool = buildPool();
 
-console.log('=== PIKIT v4.8 Balance Simulation ===');
-console.log('Prices: basic=3100 power=8100 light=3600 swift=3300');
+console.log('=== PIKIT v4.9 Balance Simulation (combo removed) ===');
+console.log('Prices: basic=2950 power=7700 light=3400 swift=3150');
 console.log('Adaptive sys: max 4, weak mode (<=3 player picks)\n');
 
 const rates = {};

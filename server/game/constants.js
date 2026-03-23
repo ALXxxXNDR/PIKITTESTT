@@ -1,11 +1,12 @@
 // ============================================
 // PIKIT - Game Balance Constants
 // Guide: Adjust all balance values in this file
+// v4.9 Balance Update — combo system removed, prices adjusted -5% to compensate
 // v4.8 Balance Update — adaptive sys pickaxe (max 4, weak mode), dynamic jackpot pool
 // v4.7 Reward Distribution Rebalance — house edge 55% @ 5p, 54% @ 10p
 // Common blocks: low HP (1-hit break) + meaningful rewards (22-28cr)
 // 10K spending floor: P10 ~3,100cr (was ~2,000 in v4.6)
-// Monte Carlo simulation: tools/balance-v47-sim.js, tools/balance-v47-final.js
+// Monte Carlo simulation: tools/balance-v48-sim.js
 // ============================================
 
 const GAME = {
@@ -22,14 +23,14 @@ const GAME = {
 };
 
 // ========== Pickaxe Definitions (4 unique types + system) ==========
-// v4.7 ROI @5p:  basic ~49%, power ~45%, light ~47%, swift ~52%
-// v4.7 ROI @10p: basic ~51%, power ~47%, light ~49%, swift ~53%
-// Prices increased ~60% to compensate for higher common block rewards
+// v4.9 ROI @5p:  basic ~47%, power ~43%, light ~46%, swift ~50%
+// v4.9 ROI @10p: basic ~46%, power ~42%, light ~45%, swift ~49%
+// Prices reduced ~5% from v4.8 to compensate for combo system removal
 // PIKIT system: large (1.5 blocks) but very slow — gentle block competition
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 3100,
+    price: 2950,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -41,7 +42,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 8100,
+    price: 7700,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -53,7 +54,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 3600,
+    price: 3400,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -65,7 +66,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 3300,
+    price: 3150,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,
@@ -251,19 +252,12 @@ const JACKPOT_POOL_CONFIG = {
   MIN_POOL_TO_SPAWN: 50000,       // Pool must reach 50,000 before jackpot block can spawn
 };
 
-// ========== Combo System ==========
-// v4.7: unchanged from v4.3 (max 1.5x)
-const COMBO = {
-  TIMEOUT: 2000,
-  MULTIPLIERS: [1, 1.05, 1.1, 1.2, 1.35, 1.5],  // Was [1, 1.2, 1.5, 2.0, 3.0, 5.0]
-  THRESHOLDS: [0, 3, 6, 10, 15, 25],
-};
-
-// House edge target — v4.8 simulation-verified (tools/balance-v48-sim.js)
-// Actual range: ~54% @1p, ~53% @2-15p, ~52% @20-30p, ~51% @50p, ~51% @80-100p
-// system_weak speedMult=0.03 (was 0.05) — keeps solo HE ≤55%
+// House edge target — v4.9 simulation-verified (tools/balance-v48-sim.js)
+// Combo removed; prices reduced ~5% to compensate
+// Actual range: ~52% @1p, ~50-53% @2-30p, ~50% @50p+
+// system_weak speedMult=0.03 — keeps solo HE ≤55%
 // DYNAMIC_SYSTEM_RATIO_THRESHOLDS in GameEngine.js updated for tighter control
-const HOUSE_EDGE = 0.53;
+const HOUSE_EDGE = 0.52;
 
 // Initial balance
 const INITIAL_BALANCE = 10000;
@@ -275,7 +269,6 @@ module.exports = {
   BLOCK_TYPES,
   JACKPOT_CONFIG,
   JACKPOT_POOL_CONFIG,
-  COMBO,
   HOUSE_EDGE,
   INITIAL_BALANCE,
 };

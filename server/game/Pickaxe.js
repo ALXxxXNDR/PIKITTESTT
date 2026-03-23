@@ -53,8 +53,6 @@ class Pickaxe {
     // Stats
     this.totalReward = 0;
     this.blocksDestroyed = 0;
-    this.combo = 0;
-    this.lastHitTime = 0;
   }
 
   update(dt) {
