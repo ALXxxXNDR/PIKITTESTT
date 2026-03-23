@@ -10,6 +10,7 @@ const UI = {
   lbOpen: false,
   myinfoOpen: false,
   questOpen: false,
+  notificationsEnabled: true,
   _questData: null, // Cached quest data
 
   // HTML escape to prevent XSS
@@ -45,6 +46,16 @@ const UI = {
     // Menu panel toggle
     document.getElementById('menu-btn').addEventListener('click', () => this.toggleMenu());
     document.getElementById('menu-close-btn').addEventListener('click', () => this.closeMenu());
+
+    // Notification toggle
+    const notifToggle = document.getElementById('notif-toggle-btn');
+    if (notifToggle) {
+      notifToggle.addEventListener('click', () => {
+        this.notificationsEnabled = !this.notificationsEnabled;
+        notifToggle.textContent = this.notificationsEnabled ? '🔔' : '🔕';
+        notifToggle.title = this.notificationsEnabled ? 'Notifications ON' : 'Notifications OFF';
+      });
+    }
 
     // Chat toggle
     document.getElementById('chat-toggle-btn').addEventListener('click', () => this.toggleChat());
@@ -847,17 +858,19 @@ const UI = {
 
   // ===== Jackpot Notification =====
   showJackpot(data) {
+    if (!this.notificationsEnabled) return;
     const overlay = document.getElementById('jackpot-overlay');
     const alert = document.createElement('div');
     alert.className = 'jackpot-alert';
     alert.textContent = `\u{1F389} ${data.playerName} found ${data.reward.toLocaleString()} from ${data.blockName}!`;
     overlay.appendChild(alert);
 
-    setTimeout(() => { if (alert.parentElement) alert.remove(); }, 4000);
+    setTimeout(() => { if (alert.parentElement) alert.remove(); }, 2500);
   },
 
   // ===== Rare Block Spawn Alert (block appeared in field) =====
   showRareBlockSpawnAlert(data) {
+    if (!this.notificationsEnabled) return;
     let emoji = '💎';
     let colorClass = 'diamond';
 
@@ -883,7 +896,7 @@ const UI = {
         alertEl.classList.add('fade-out');
         setTimeout(() => alertEl.remove(), 500);
       }
-    }, 4000);
+    }, 2500);
   },
 
   // ===== Wait for tx receipt (polling via eth_getTransactionReceipt) =====
@@ -1055,6 +1068,7 @@ const UI = {
 
   // ===== Rare Block Notification (block destroyed by player) =====
   showRareBlockNotification(data) {
+    if (!this.notificationsEnabled) return;
     let colorClass = 'gold';
     let emoji = '💎';
 
@@ -1067,6 +1081,9 @@ const UI = {
     } else if (data.blockType === 'gold_block') {
       colorClass = 'gold';
       emoji = '✨';
+    } else if (data.blockType === 'netherite_block') {
+      colorClass = 'netherite';
+      emoji = '⚔️';
     }
 
     const banner = document.createElement('div');
@@ -1084,7 +1101,7 @@ const UI = {
     const overlay = document.getElementById('jackpot-overlay');
     overlay.appendChild(banner);
 
-    const duration = data.blockType === 'jackpot' ? 15000 : 10000;
+    const duration = data.blockType === 'jackpot' ? 5000 : 3000;
     setTimeout(() => {
       if (banner.parentElement) {
         banner.classList.add('fade-out');

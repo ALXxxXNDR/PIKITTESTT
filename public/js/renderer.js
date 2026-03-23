@@ -559,7 +559,7 @@ const Renderer = {
       time: this._now || Date.now(),
       particles: this._createCinematicParticles(data.blockType),
     });
-    Camera.shake(isJackpot ? 50 : 30, isJackpot ? 2.5 : 1.5);
+    Camera.shake(isJackpot ? 20 : 10, isJackpot ? 1.0 : 0.5);
   },
 
   _createCinematicParticles(blockType) {
@@ -570,16 +570,16 @@ const Renderer = {
       gold_block: ['#FFD700', '#FFA500', '#DAA520', '#FFEC8B', '#fff', '#FFE4B5'],
     };
     const colors = colorSets[blockType] || colorSets.gold_block;
-    const count = blockType === 'jackpot' ? 100 : 60;
+    const count = blockType === 'jackpot' ? 30 : 15;
 
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
-      const speed = 150 + Math.random() * 400;
+      const speed = 80 + Math.random() * 200;
       particles.push({
         x: 0, y: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: 6 + Math.random() * 10, // bigger square particles for 8-bit feel
+        size: 3 + Math.random() * 5, // smaller square particles for 8-bit feel
         color: colors[Math.floor(Math.random() * colors.length)],
         life: 1,
         decay: 0.3 + Math.random() * 0.4,
@@ -1188,24 +1188,15 @@ const Renderer = {
       const secondaryColor = isJackpot ? '#FF00FF' :
         effect.blockType === 'diamond_block' ? '#00FFFF' : '#FFA500';
 
-      // White flash
-      if (age < 0.15) {
-        const flashAlpha = (1 - age / 0.15) * (isJackpot ? 0.9 : 0.7);
-        ctx.globalAlpha = flashAlpha;
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvasW, canvasH);
-        ctx.globalAlpha = 1;
-      }
-
       // Pixel shockwave rings (square rings for 8-bit)
-      const ringCount = isJackpot ? 5 : 3;
+      const ringCount = isJackpot ? 2 : 1;
       for (let ring = 0; ring < ringCount; ring++) {
         const ringDelay = ring * 0.12;
         const ringAge = age - ringDelay;
         if (ringAge < 0 || ringAge > 2.0) continue;
 
         const ringProgress = ringAge / 2.0;
-        const radius = ringProgress * (isJackpot ? 800 : 500);
+        const radius = ringProgress * (isJackpot ? 300 : 200);
         const alpha = (1 - ringProgress) * 0.6;
         const lineWidth = Math.floor((1 - ringProgress) * 8 + 2);
 
@@ -1255,7 +1246,7 @@ const Renderer = {
         ctx.globalAlpha = Math.max(0, textAlpha);
         ctx.textAlign = 'center';
 
-        const blockFontSize = isJackpot ? 44 : 32;
+        const blockFontSize = isJackpot ? 24 : 18;
         ctx.font = `bold ${blockFontSize}px "Courier New", monospace`;
 
         // Shadow
@@ -1264,7 +1255,7 @@ const Renderer = {
         ctx.fillStyle = primaryColor;
         ctx.fillText(effect.blockName, pos.x, textY);
 
-        const rewardFontSize = isJackpot ? 34 : 26;
+        const rewardFontSize = isJackpot ? 20 : 16;
         ctx.font = `bold ${rewardFontSize}px "Courier New", monospace`;
         ctx.fillStyle = '#000';
         ctx.fillText(`+${effect.reward.toLocaleString()}`, pos.x + 2, textY + 52);
