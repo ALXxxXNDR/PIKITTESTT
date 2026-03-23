@@ -1,11 +1,23 @@
 const Chunk = require('./Chunk');
 const Pickaxe = require('./Pickaxe');
 const TNT = require('./TNT');
-const { GAME, PICKAXE_TYPES, TNT_TYPES, COMBO, BLOCK_TYPES, JACKPOT_CONFIG } = require('./constants');
+const { GAME, PICKAXE_TYPES, TNT_TYPES, COMBO, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
 
-// Target number of system pickaxes to keep active at all times
+// Target number of system pickaxes to keep active at all times (anchor)
 const SYSTEM_PICKAXE_TARGET = 1;
 const MAX_PICKAXES_PER_PLAYER = 3;
+
+// Adaptive system pickaxe scaling thresholds (v4.8)
+// Sorted descending by minPicks — first matching entry wins
+const DYNAMIC_SYSTEM_RATIO_THRESHOLDS = [
+  { minPicks: 81, sysCnt: 4 },
+  { minPicks: 51, sysCnt: 3 },
+  { minPicks: 21, sysCnt: 2 },
+  { minPicks: 4,  sysCnt: 1 },
+  { minPicks: 0,  sysCnt: 0 },  // solo (≤3 player picks): anchor only (weak mode)
+];
+const WEAK_MODE_THRESHOLD = 3;   // player pickaxe count ≤ this → anchor enters weak mode
+const MAX_SYSTEM_PICKAXES = 4;   // anchor (1) + dynamic (3) max
 
 class GameEngine {
   constructor(io, fieldId = 'normal', rewardMultiplier = 1) {
@@ -44,6 +56,17 @@ class GameEngine {
     // System pickaxe counter (avoid iterating all pickaxes every tick)
     this._systemPickaxeCount = 0;
 
+    // Adaptive system pickaxe tracking (v4.8)
+    this._anchorPickaxeId = null;      // ID of the permanent anchor pickaxe
+    this._dynamicSysCount = 0;         // Count of temporary dynamic system pickaxes
+
+    // Jackpot pool (v4.8) — accumulates from house profit milestones
+    this.jackpotPool = 0;
+    this.houseProfitAccumulator = 0;
+
+    // Respawn flag: jackpot escaped the viewport but pool is still intact
+    this._jackpotNeedsRespawn = false;
+
     // Initial chunk generation
     for (let i = 0; i < 5; i++) {
       this.getOrCreateChunk(i);
@@ -57,11 +80,9 @@ class GameEngine {
     this.broadcastInterval = setInterval(() => this.broadcast(), 1000 / GAME.BROADCAST_RATE);
     console.log(`[GameEngine:${this.fieldId}] Started (${GAME.TICK_RATE}fps tick, ${GAME.BROADCAST_RATE}fps broadcast, ${this.rewardMultiplier}x)`);
 
-    // Spawn initial system pickaxes to reach target
+    // Spawn the anchor system pickaxe (Infinity lifetime, always present)
     this._systemPickaxeCount = 0;
-    for (let i = 0; i < SYSTEM_PICKAXE_TARGET; i++) {
-      this._spawnSystemPickaxe();
-    }
+    this._spawnAnchorPickaxe();
   }
 
   stop() {
@@ -111,7 +132,6 @@ class GameEngine {
 
       // Remove expired
       if (pickaxe.expired) {
-        if (pickaxe.ownerId === '__system__') this._systemPickaxeCount--;
         this._expirePickaxe(pickaxe);
         this.pickaxes.delete(id);
         continue;
@@ -144,10 +164,52 @@ class GameEngine {
       }
     }
 
-    // System pickaxe auto-spawn: maintain target count (uses cached counter)
-    if (this._systemPickaxeCount < SYSTEM_PICKAXE_TARGET && now - this.lastSystemPickaxe > this.systemPickaxeInterval) {
-      this._spawnSystemPickaxe();
-      this.lastSystemPickaxe = now;
+    // Adaptive system pickaxe management (v4.8)
+    if (now - this.lastSystemPickaxe > this.systemPickaxeInterval) {
+      const playerPickaxeCount = this.pickaxes.size - this._systemPickaxeCount;
+
+      // Anchor recovery — normally never expires (Infinity lifetime) but defend anyway
+      if (!this.pickaxes.has(this._anchorPickaxeId)) {
+        this._anchorPickaxeId = null;
+        this._systemPickaxeCount = Math.max(0, this._systemPickaxeCount - 1);
+        this._spawnAnchorPickaxe();
+        this.lastSystemPickaxe = now;
+        return;
+      }
+
+      // Switch anchor between weak and active mode based on player activity
+      const anchorPickaxe = this.pickaxes.get(this._anchorPickaxeId);
+      if (anchorPickaxe) {
+        const shouldBeWeak = playerPickaxeCount <= WEAK_MODE_THRESHOLD;
+        if (shouldBeWeak && anchorPickaxe.type !== 'system_weak') {
+          anchorPickaxe.color = '#888888';
+          anchorPickaxe.speedMult = 0.05;
+          anchorPickaxe.scale = 0.8;
+          anchorPickaxe.gravityMult = 0.5;
+          anchorPickaxe.type = 'system_weak';
+        } else if (!shouldBeWeak && anchorPickaxe.type === 'system_weak') {
+          anchorPickaxe.color = '#FF00FF';
+          anchorPickaxe.speedMult = 0.1;
+          anchorPickaxe.scale = 1.5;
+          anchorPickaxe.gravityMult = 0.3;
+          anchorPickaxe.type = 'system';
+        }
+      }
+
+      // Calculate dynamic system pickaxe target (excluding anchor)
+      let dynamicTarget = 0;
+      for (const t of DYNAMIC_SYSTEM_RATIO_THRESHOLDS) {
+        if (playerPickaxeCount >= t.minPicks) {
+          dynamicTarget = t.sysCnt;
+          break;
+        }
+      }
+      dynamicTarget = Math.min(dynamicTarget, MAX_SYSTEM_PICKAXES - 1); // reserve 1 slot for anchor
+
+      if (this._dynamicSysCount < dynamicTarget) {
+        this._spawnDynamicSystemPickaxe('system');
+        this.lastSystemPickaxe = now;
+      }
     }
 
     // Camera tracking (lowest active pickaxe)
@@ -188,13 +250,21 @@ class GameEngine {
               player.trackBlockDestroyed(block.type); // Quest tracking
               pickaxe.addReward(finalReward);
 
-              // Jackpot block destroyed!
+              // Jackpot block destroyed! — pay out the entire pool
               if (block.type === 'jackpot') {
                 this.jackpotBlockExists = false;
+                this._jackpotNeedsRespawn = false;
+                const jackpotReward = this.jackpotPool;
+                this.jackpotPool = 0;
+
+                // Override the normal finalReward with jackpot pool payout
+                player.earn(jackpotReward - finalReward, block.name); // add diff (finalReward already added above)
+                pickaxe.addReward(jackpotReward - finalReward);        // sync pickaxe stats
+
                 this.io.to(this.roomName).emit('jackpotBlockDestroyed', {
                   playerName: pickaxe.ownerName,
                   blockName: block.name,
-                  reward: finalReward,
+                  reward: jackpotReward,
                   x: block.x + block.width / 2,
                   y: block.y + block.height / 2,
                   time: now,
@@ -203,7 +273,7 @@ class GameEngine {
                 this.jackpots.push({
                   playerName: pickaxe.ownerName,
                   blockName: block.name,
-                  reward: finalReward,
+                  reward: jackpotReward,
                   time: now,
                 });
               }
@@ -386,6 +456,8 @@ class GameEngine {
           for (const block of chunk.blocks) {
             if (block.type === 'jackpot' && !block.destroyed) {
               this.jackpotBlockExists = false;
+              // Pool is preserved — mark for potential re-spawn via RESPAWN_CHANCE
+              this._jackpotNeedsRespawn = true;
               break;
             }
           }
@@ -414,6 +486,8 @@ class GameEngine {
             // Reset jackpot tracking flag if necessary
             if (block.type === 'jackpot') {
               this.jackpotBlockExists = false;
+              // Pool is preserved — mark for potential re-spawn via RESPAWN_CHANCE
+              this._jackpotNeedsRespawn = true;
             }
           }
         }
@@ -423,10 +497,33 @@ class GameEngine {
 
   // ========== Pickaxe Expiry ==========
   _expirePickaxe(pickaxe) {
+    // System pickaxe: update counters, no reward processing
+    if (pickaxe.ownerId === '__system__') {
+      this._systemPickaxeCount--;
+      if (pickaxe.id !== this._anchorPickaxeId) {
+        // Dynamic pickaxe expired normally
+        this._dynamicSysCount = Math.max(0, this._dynamicSysCount - 1);
+      } else {
+        // Anchor expired — abnormal, clear anchor ID (tick loop will re-spawn)
+        this._anchorPickaxeId = null;
+      }
+      return;
+    }
+
+    // Player pickaxe: compute house profit and feed jackpot pool
+    const profit = (pickaxe.price || 0) - (pickaxe.totalReward || 0);
+    if (profit > 0) {
+      this.houseProfitAccumulator += profit;
+      while (this.houseProfitAccumulator >= JACKPOT_POOL_CONFIG.HOUSE_PROFIT_MILESTONE) {
+        this.jackpotPool += JACKPOT_POOL_CONFIG.POOL_ALLOCATION;
+        this.houseProfitAccumulator -= JACKPOT_POOL_CONFIG.HOUSE_PROFIT_MILESTONE;
+      }
+    }
+
+    // Expiry notification
     const player = this.players.get(pickaxe.ownerId);
     if (player) {
       player.activePickaxes = player.activePickaxes.filter(id => id !== pickaxe.id);
-      // Expiry notification
       const socket = this.io.sockets.sockets.get(pickaxe.ownerId);
       if (socket) {
         socket.emit('pickaxeExpired', {
@@ -487,14 +584,31 @@ class GameEngine {
   }
 
   // ========== System Pickaxes ==========
-  _spawnSystemPickaxe() {
+
+  // Spawn the permanent anchor system pickaxe (Infinity lifetime)
+  _spawnAnchorPickaxe() {
     const pickaxe = new Pickaxe('system', '__system__', 'PIKIT');
-    // Start above camera, in an empty column so it falls into open space
     pickaxe.y = this.cameraY - GAME.INTERNAL_HEIGHT / 2;
     pickaxe.x = this._findEmptySpawnX(pickaxe.y);
-    // lifetime is already set from constants via Pickaxe constructor
+    this.pickaxes.set(pickaxe.id, pickaxe);
+    this._anchorPickaxeId = pickaxe.id;
+    this._systemPickaxeCount++;
+  }
+
+  // Spawn a temporary dynamic system pickaxe (60s lifetime)
+  // mode: 'system' (full strength) or 'system_weak' (reduced activity)
+  _spawnDynamicSystemPickaxe(mode = 'system') {
+    const pickaxe = new Pickaxe(mode, '__system__', 'PIKIT');
+    pickaxe.y = this.cameraY - GAME.INTERNAL_HEIGHT / 2;
+    pickaxe.x = this._findEmptySpawnX(pickaxe.y);
     this.pickaxes.set(pickaxe.id, pickaxe);
     this._systemPickaxeCount++;
+    this._dynamicSysCount++;
+  }
+
+  // Legacy method kept for safety (no longer called, replaced by _spawnAnchorPickaxe)
+  _spawnSystemPickaxe() {
+    this._spawnAnchorPickaxe();
   }
 
   // ========== Item Purchase ==========
@@ -575,6 +689,7 @@ class GameEngine {
       leaderboard: this._getLeaderboard(),
       playerCount: this.players.size,
       activePickaxes: this.pickaxes.size,
+      jackpotPool: this.jackpotPool,
     };
 
     this.io.to(this.roomName).emit('gameState', state);
