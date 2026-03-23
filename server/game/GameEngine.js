@@ -3,21 +3,7 @@ const Pickaxe = require('./Pickaxe');
 const TNT = require('./TNT');
 const { GAME, PICKAXE_TYPES, TNT_TYPES, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
 
-// Target number of system pickaxes to keep active at all times (anchor)
-const SYSTEM_PICKAXE_TARGET = 1;
-const MAX_PICKAXES_PER_PLAYER = 3;
-
-// Adaptive system pickaxe scaling thresholds (v4.8)
-// Sorted descending by minPicks — first matching entry wins
-const DYNAMIC_SYSTEM_RATIO_THRESHOLDS = [
-  { minPicks: 46, sysCnt: 3 },  // anchor + 3 dynamic = 4 total
-  { minPicks: 21, sysCnt: 2 },  // anchor + 2 dynamic = 3 total
-  { minPicks: 11, sysCnt: 1 },  // anchor + 1 dynamic = 2 total
-  { minPicks: 4,  sysCnt: 0 },  // anchor only = 1 total (full mode)
-  { minPicks: 0,  sysCnt: 0 },  // solo (≤3 player picks): anchor only (weak mode)
-];
-const WEAK_MODE_THRESHOLD = 3;   // player pickaxe count ≤ this → anchor enters weak mode
-const MAX_SYSTEM_PICKAXES = 4;   // anchor (1) + dynamic (3) max
+const MAX_PICKAXES_PER_PLAYER = 1;
 
 class GameEngine {
   constructor(io, fieldId = 'normal', rewardMultiplier = 1) {
@@ -56,10 +42,6 @@ class GameEngine {
     // System pickaxe counter (avoid iterating all pickaxes every tick)
     this._systemPickaxeCount = 0;
 
-    // Adaptive system pickaxe tracking (v4.8)
-    this._anchorPickaxeId = null;      // ID of the permanent anchor pickaxe
-    this._dynamicSysCount = 0;         // Count of temporary dynamic system pickaxes
-
     // Jackpot pool (v4.8) — accumulates from house profit milestones
     this.jackpotPool = 0;
     this.houseProfitAccumulator = 0;
@@ -80,9 +62,9 @@ class GameEngine {
     this.broadcastInterval = setInterval(() => this.broadcast(), 1000 / GAME.BROADCAST_RATE);
     console.log(`[GameEngine:${this.fieldId}] Started (${GAME.TICK_RATE}fps tick, ${GAME.BROADCAST_RATE}fps broadcast, ${this.rewardMultiplier}x)`);
 
-    // Spawn the anchor system pickaxe (Infinity lifetime, always present)
+    // Spawn the initial system pickaxe (Infinity lifetime, always present)
     this._systemPickaxeCount = 0;
-    this._spawnAnchorPickaxe();
+    this._spawnSystemPickaxe();
   }
 
   stop() {
@@ -164,58 +146,10 @@ class GameEngine {
       }
     }
 
-    // Adaptive system pickaxe management (v4.8)
+    // System pickaxe recovery (keep exactly 1 alive)
     if (now - this.lastSystemPickaxe > this.systemPickaxeInterval) {
-      const playerPickaxeCount = this.pickaxes.size - this._systemPickaxeCount;
-
-      // Anchor recovery — normally never expires (Infinity lifetime) but defend anyway
-      if (!this.pickaxes.has(this._anchorPickaxeId)) {
-        this._anchorPickaxeId = null;
-        this._systemPickaxeCount = Math.max(0, this._systemPickaxeCount - 1);
-        this._spawnAnchorPickaxe();
-        this.lastSystemPickaxe = now;
-        return;
-      }
-
-      // Switch anchor between weak and active mode based on player activity
-      const anchorPickaxe = this.pickaxes.get(this._anchorPickaxeId);
-      if (anchorPickaxe) {
-        const shouldBeWeak = playerPickaxeCount <= WEAK_MODE_THRESHOLD;
-        if (shouldBeWeak && anchorPickaxe.type !== 'system_weak') {
-          const weakDef = PICKAXE_TYPES['system_weak'];
-          anchorPickaxe.type = 'system_weak';
-          anchorPickaxe.color = weakDef.color;
-          anchorPickaxe.speedMult = weakDef.speedMult;
-          anchorPickaxe.scale = weakDef.scale;
-          anchorPickaxe.gravityMult = weakDef.gravityMult;
-          anchorPickaxe.width = GAME.BLOCK_SIZE * weakDef.scale;
-          anchorPickaxe.height = GAME.BLOCK_SIZE * weakDef.scale;
-          anchorPickaxe.bounceEnergy = 200 * weakDef.speedMult;
-        } else if (!shouldBeWeak && anchorPickaxe.type === 'system_weak') {
-          const fullDef = PICKAXE_TYPES['system'];
-          anchorPickaxe.type = 'system';
-          anchorPickaxe.color = fullDef.color;
-          anchorPickaxe.speedMult = fullDef.speedMult;
-          anchorPickaxe.scale = fullDef.scale;
-          anchorPickaxe.gravityMult = fullDef.gravityMult;
-          anchorPickaxe.width = GAME.BLOCK_SIZE * fullDef.scale;
-          anchorPickaxe.height = GAME.BLOCK_SIZE * fullDef.scale;
-          anchorPickaxe.bounceEnergy = 200 * fullDef.speedMult;
-        }
-      }
-
-      // Calculate dynamic system pickaxe target (excluding anchor)
-      let dynamicTarget = 0;
-      for (const t of DYNAMIC_SYSTEM_RATIO_THRESHOLDS) {
-        if (playerPickaxeCount >= t.minPicks) {
-          dynamicTarget = t.sysCnt;
-          break;
-        }
-      }
-      dynamicTarget = Math.min(dynamicTarget, MAX_SYSTEM_PICKAXES - 1); // reserve 1 slot for anchor
-
-      if (this._dynamicSysCount < dynamicTarget) {
-        this._spawnDynamicSystemPickaxe('system');
+      if (this._systemPickaxeCount < 1) {
+        this._spawnSystemPickaxe();
         this.lastSystemPickaxe = now;
       }
     }
@@ -488,16 +422,9 @@ class GameEngine {
 
   // ========== Pickaxe Expiry ==========
   _expirePickaxe(pickaxe) {
-    // System pickaxe: update counters, no reward processing
+    // System pickaxe: update counter only
     if (pickaxe.ownerId === '__system__') {
       this._systemPickaxeCount--;
-      if (pickaxe.id !== this._anchorPickaxeId) {
-        // Dynamic pickaxe expired normally
-        this._dynamicSysCount = Math.max(0, this._dynamicSysCount - 1);
-      } else {
-        // Anchor expired — abnormal, clear anchor ID (tick loop will re-spawn)
-        this._anchorPickaxeId = null;
-      }
       return;
     }
 
@@ -576,42 +503,24 @@ class GameEngine {
 
   // ========== System Pickaxes ==========
 
-  // Spawn the permanent anchor system pickaxe (Infinity lifetime)
-  _spawnAnchorPickaxe() {
+  _spawnSystemPickaxe() {
     const pickaxe = new Pickaxe('system', '__system__', 'PIKIT');
     pickaxe.y = this.cameraY - GAME.INTERNAL_HEIGHT / 2;
     pickaxe.x = this._findEmptySpawnX(pickaxe.y);
     this.pickaxes.set(pickaxe.id, pickaxe);
-    this._anchorPickaxeId = pickaxe.id;
     this._systemPickaxeCount++;
-  }
-
-  // Spawn a temporary dynamic system pickaxe (60s lifetime)
-  // mode: 'system' (full strength) or 'system_weak' (reduced activity)
-  _spawnDynamicSystemPickaxe(mode = 'system') {
-    const pickaxe = new Pickaxe(mode, '__system__', 'PIKIT');
-    pickaxe.y = this.cameraY - GAME.INTERNAL_HEIGHT / 2;
-    pickaxe.x = this._findEmptySpawnX(pickaxe.y);
-    this.pickaxes.set(pickaxe.id, pickaxe);
-    this._systemPickaxeCount++;
-    this._dynamicSysCount++;
-  }
-
-  // Legacy method kept for safety (no longer called, replaced by _spawnAnchorPickaxe)
-  _spawnSystemPickaxe() {
-    this._spawnAnchorPickaxe();
   }
 
   // ========== Item Purchase ==========
   buyPickaxe(player, type) {
     const def = PICKAXE_TYPES[type];
     if (!def) return { error: 'Invalid pickaxe type' };
-    if (type === 'system' || type === 'system_weak') return { error: 'Invalid pickaxe type' };
+    if (type === 'system') return { error: 'Invalid pickaxe type' };
 
-    // Max 3 pickaxes per player per field
+    // Max 1 pickaxe per player per field
     const activeCount = Array.from(this.pickaxes.values())
       .filter(p => p.ownerId === player.id && !p.expired).length;
-    if (activeCount >= MAX_PICKAXES_PER_PLAYER) return { error: 'Max 3 pickaxes per field! Wait for one to expire.' };
+    if (activeCount >= MAX_PICKAXES_PER_PLAYER) return { error: 'Max 1 pickaxe per field! Wait for it to expire.' };
 
     const effectivePrice = def.price * this.rewardMultiplier;
     if (!player.canAfford(effectivePrice)) return { error: 'Insufficient balance' };
