@@ -83,7 +83,7 @@ class GameEngine {
     this.io.to(this.roomName).emit('jackpotBlockSpawned', { time: Date.now() });
   }
 
-  // Rare block spawn alert (diamond, gold, emerald)
+  // Rare block spawn alert (diamond, netherite, gold, emerald)
   // Only emit alerts when game is running (skip initial chunk generation spam)
   _onRareBlockSpawned(blockType, blockDef) {
     if (!blockDef || !this.running) return;
@@ -222,8 +222,8 @@ class GameEngine {
               player.trackBlockDestroyed(block.type); // Quest tracking
               pickaxe.addReward(finalReward);
 
-              // High-value block notification (reward >= 1000)
-              if (reward >= 1000) {
+              // High-value block notification (reward >= 2000, tier 7+)
+              if (reward >= 2000) {
                 this.jackpots.push({
                   playerName: pickaxe.ownerName,
                   blockName: block.name,
@@ -232,7 +232,7 @@ class GameEngine {
                 });
 
                 // Rare block cinematic (diamond_block or gold_block)
-                if (block.type === 'diamond_block' || block.type === 'gold_block') {
+                if (block.type === 'diamond_block' || block.type === 'gold_block' || block.type === 'netherite_block') {
                   this.io.to(this.roomName).emit('rareBlockDestroyed', {
                     playerName: pickaxe.ownerName,
                     blockType: block.type,
