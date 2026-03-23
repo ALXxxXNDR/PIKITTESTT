@@ -1,6 +1,7 @@
 // ============================================
 // PIKIT - Game Balance Constants
 // Guide: Adjust all balance values in this file
+// v4.8 Balance Update — adaptive sys pickaxe (max 4, weak mode), dynamic jackpot pool
 // v4.7 Reward Distribution Rebalance — house edge 55% @ 5p, 54% @ 10p
 // Common blocks: low HP (1-hit break) + meaningful rewards (22-28cr)
 // 10K spending floor: P10 ~3,100cr (was ~2,000 in v4.6)
@@ -28,7 +29,7 @@ const GAME = {
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
-    price: 3400,
+    price: 3200,
     damage: 3,
     scale: 0.8,           // Small user pickaxe
     gravityMult: 1.0,
@@ -40,7 +41,7 @@ const PICKAXE_TYPES = {
   },
   power: {
     name: 'Power Pickaxe',
-    price: 8800,
+    price: 8300,
     damage: 5,
     scale: 1.0,           // Medium user pickaxe (biggest user pick)
     gravityMult: 1.0,
@@ -52,7 +53,7 @@ const PICKAXE_TYPES = {
   },
   light: {
     name: 'Light Pickaxe',
-    price: 3900,
+    price: 3700,
     damage: 4,
     scale: 0.7,           // Compact user pickaxe
     gravityMult: 0.5,
@@ -64,7 +65,7 @@ const PICKAXE_TYPES = {
   },
   swift: {
     name: 'Swift Pickaxe',
-    price: 3600,
+    price: 3400,
     damage: 3,
     scale: 0.75,          // Small-medium user pickaxe
     gravityMult: 1.0,
@@ -81,10 +82,22 @@ const PICKAXE_TYPES = {
     scale: 1.5,            // Large 1.5-block-size pickaxe — visually imposing
     gravityMult: 0.3,      // Ultra-slow fall — floats like a giant obstacle
     speedMult: 0.1,        // Barely moves horizontally — low encounter rate despite large size
-    lifetime: Infinity,    // Never expires — permanent house pickaxe
+    lifetime: Infinity,    // Never expires — permanent house pickaxe (anchor)
     texture: 'system_pickaxe.png',
     color: '#FF00FF',
     description: 'PIKIT house pickaxe — competes with players for blocks',
+  },
+  system_weak: {
+    name: 'PIKIT',
+    price: 0,
+    damage: 5,
+    scale: 0.8,
+    gravityMult: 0.5,
+    speedMult: 0.05,
+    lifetime: 60000,
+    texture: 'system_pickaxe.png',
+    color: '#888888',
+    description: 'PIKIT (Resting) — reduced activity in low-player mode',
   }
 };
 
@@ -113,9 +126,9 @@ const BLOCK_TYPES = {
   // === 6 Credit Blocks (fixed reward, rarest = highest reward) ===
   jackpot: {
     name: 'Jackpot Block',
-    hp: 300,               // Very tanky — requires sustained damage
+    hp: 1500,              // Raid boss — requires sustained team damage (was 300)
     weight: 0,             // NOT in normal pool — special conditional spawn
-    reward: 250000,        // 250K credits
+    reward: 250000,        // 250K credits (overridden by dynamic jackpotPool at runtime)
     rewardType: 'fixed',
     color: '#FF00FF',
     texture: 'jackpot.png',
@@ -222,12 +235,22 @@ const BLOCK_TYPES = {
 };
 
 // ========== Jackpot System Config ==========
-// v4.7: unchanged from v4.3
+// v4.8: pool-based spawn condition, HP 1500, dynamic reward from jackpotPool
 const JACKPOT_CONFIG = {
-  SPAWN_THRESHOLD: 1500000,  // 1.5M credits must be spent before jackpot can spawn
-  SPAWN_CHANCE: 0.0005,      // 0.05% chance per eligible block position (down from 0.1%)
-  REWARD: 250000,            // 250K credits (down from 1M — matches jackpot block reward)
-  MIN_PLAYERS: 10,           // Minimum active players required for jackpot to be eligible
+  SPAWN_THRESHOLD: 0,        // No longer used — replaced by pool-based condition
+  SPAWN_CHANCE: 0.0001,      // 0.01% chance per eligible block position (was 0.05%)
+  RESPAWN_CHANCE: 0.00001,   // 0.001% re-spawn chance after jackpot escapes viewport
+  REWARD: 0,                 // Fixed reward deprecated — dynamic pool used instead
+  HP: 1500,                  // Raid boss HP (was 300) — requires sustained team effort
+  MIN_PLAYERS: 0,            // Player count condition removed (pool-based is sufficient)
+};
+
+// ========== Jackpot Pool Config ==========
+// v4.8: house profit milestones feed the jackpot pool
+const JACKPOT_POOL_CONFIG = {
+  HOUSE_PROFIT_MILESTONE: 50000,  // Every 50,000cr of house profit triggers an allocation
+  POOL_ALLOCATION: 2500,          // 2,500 credits added to jackpot pool per milestone
+  MIN_POOL_TO_SPAWN: 50000,       // Pool must reach 50,000 before jackpot block can spawn
 };
 
 // ========== Combo System ==========
@@ -251,6 +274,7 @@ module.exports = {
   TNT_TYPES,
   BLOCK_TYPES,
   JACKPOT_CONFIG,
+  JACKPOT_POOL_CONFIG,
   COMBO,
   HOUSE_EDGE,
   INITIAL_BALANCE,
