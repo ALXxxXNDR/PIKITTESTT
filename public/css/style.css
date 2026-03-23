@@ -654,6 +654,14 @@ body {
   animation: rareBannerIn 0.3s ease;
 }
 
+.rare-block-banner.netherite {
+  background: rgba(40, 25, 15, 0.85);
+  border-color: #C8A882;
+  color: #C8A882;
+  text-shadow: 0 0 6px #C8A882;
+  animation: rareBannerIn 0.3s ease;
+}
+
 .rare-block-banner.fade-out { animation: rareBannerOut 0.5s ease forwards; }
 
 .rare-banner-emoji { font-size: 14px; z-index: 1; }

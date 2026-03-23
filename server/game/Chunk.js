@@ -48,7 +48,7 @@ class Chunk {
         const type = this._pickRandomBlock(blockPool);
         this.blocks.push(new Block(type, gx, worldY));
 
-        // Rare block spawn alert (diamond only)
+        // Rare block spawn alert (diamond, netherite)
         if (RARE_ALERT_TYPES.has(type) && this.gameEngine) {
           this.gameEngine._onRareBlockSpawned(type, BLOCK_TYPES[type]);
         }

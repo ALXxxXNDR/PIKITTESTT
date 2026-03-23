@@ -227,7 +227,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Buy pickaxe (max 5 active pickaxes per player)
+  // Buy pickaxe (max 1 active pickaxe per player)
   socket.on('buyPickaxe', (data) => {
     const engine = getPlayerEngine(socket);
     if (!engine) return socket.emit('error', { message: 'Please join a field first' });
@@ -235,8 +235,8 @@ io.on('connection', (socket) => {
     if (!player) return socket.emit('error', { message: 'Please join first' });
     if (!data || typeof data.type !== 'string') return;
 
-    if (player.activePickaxes.length >= 5) {
-      return socket.emit('purchaseResult', { success: false, message: 'Max 5 active pickaxes' });
+    if (player.activePickaxes.length >= 1) {
+      return socket.emit('purchaseResult', { success: false, message: 'Max 1 pickaxe per field! Wait for it to expire.' });
     }
 
     const result = engine.buyPickaxe(player, data.type);

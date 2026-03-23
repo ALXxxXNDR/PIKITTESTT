@@ -551,7 +551,7 @@ const UI = {
       : 0;
     const countIndicator = document.createElement('div');
     countIndicator.style.cssText = [
-      `color: ${activeCount >= 3 ? '#ef4444' : '#94a3b8'}`,
+      `color: ${activeCount >= 1 ? '#ef4444' : '#94a3b8'}`,
       'font-size: 12px',
       'text-align: center',
       'margin-bottom: 8px',
