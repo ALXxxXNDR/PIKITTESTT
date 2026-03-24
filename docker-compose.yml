@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  pikit:
+    build: .
+    container_name: pikit_web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # - SEPOLIA_RPC_URL=https://rpc.sepolia.org (원하는 경우 환경변수 설정)
+    # 볼륨 마운트가 필요하다면 아래 주석을 해제하세요
+    # volumes:
+    #   - ./data:/app/data
