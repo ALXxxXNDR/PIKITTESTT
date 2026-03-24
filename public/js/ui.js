@@ -633,9 +633,10 @@ const UI = {
       tntGrid.appendChild(item);
     }
 
-    // Dev spawn panel (localhost only)
+    // Dev spawn panel (localhost, private network, or ?dev=true)
     const devPanel = document.getElementById('dev-spawn-panel');
-    if (devPanel && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.includes('synology') || location.search.includes('dev=true');
+    if (devPanel && isLocal) {
       devPanel.style.display = '';
       const devGrid = document.getElementById('dev-spawn-items');
       devGrid.innerHTML = '';
