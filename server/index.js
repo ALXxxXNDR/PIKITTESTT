@@ -11,9 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production'
-      ? false  // Same origin only in production
-      : '*',   // Allow all in development
+    origin: '*', // Allow all for testing
   },
   pingTimeout: 20000,
   pingInterval: 10000,
@@ -263,9 +261,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Dev: spawn test pickaxe (free, no balance deduction, localhost only)
+  // Dev: spawn test pickaxe (free, no balance deduction, unlocked for testing)
   socket.on('devSpawnPickaxe', (data) => {
-    if (process.env.NODE_ENV === 'production') return;
+    // Unlocked for test deployment
     const engine = getPlayerEngine(socket);
     if (!engine) return;
     const player = engine.players.get(socket.id);

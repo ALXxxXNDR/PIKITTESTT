@@ -191,8 +191,9 @@ const UI = {
   _requireWallet() {
     if (GameSocket.player) return true; // Already logged in
 
-    // Dev mode: localhost — allow nickname login without wallet
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    // Dev mode: allow nickname login without wallet for testing
+    const isTest = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.includes('synology') || location.search.includes('dev=true');
+    if (isTest) {
       const name = prompt('Dev Login — Enter nickname:') || 'Tester';
       GameSocket.join(name.substring(0, 12));
       this.showToast('Dev login...', 'info');
