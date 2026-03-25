@@ -1,10 +1,9 @@
 // ============================================
 // PIKIT - Game Balance Constants
-// Guide: Adjust all balance values in this file
-// v5.0 Balance Rebalance — 10-tier blocks, 5-tier pickaxes, 90% return rate
+// v5.1 Balance — 10-tier blocks, 5-tier pickaxes, 95% return rate
 // 10 block tiers with weights summing to 10000
-// 5 user pickaxes (basic/power/light/swift/elite) + 1 system
-// House edge: 10% (was 52%)
+// 5 user pickaxes (basic/power/light/swift/elite) + system (×3)
+// House edge: 5%
 // ============================================
 
 const GAME = {
@@ -21,68 +20,67 @@ const GAME = {
 };
 
 // ========== Pickaxe Definitions (5 user types + system) ==========
-// v5.0: 5-tier pricing (1000–5000), increased damage across the board
-// system_weak removed — single system pickaxe only
+// v5.1: DMG rebalanced for 95% return rate
 const PICKAXE_TYPES = {
   basic: {
     name: 'Basic Pickaxe',
     price: 1000,
-    damage: 14,
+    damage: 27,
     scale: 0.8,
     gravityMult: 1.0,
     speedMult: 1.0,
     lifetime: 30000,
     texture: 'wooden_pickaxe.png',
     color: '#8B6914',
-    description: 'DMG 14 | 30s | Standard gravity & speed. A reliable all-rounder.',
+    description: 'DMG 27 | 30s | Standard gravity & speed. A reliable all-rounder.',
   },
   power: {
     name: 'Power Pickaxe',
     price: 2000,
-    damage: 30,
+    damage: 58,
     scale: 1.0,
     gravityMult: 1.0,
     speedMult: 1.0,
     lifetime: 30000,
     texture: 'diamond_pickaxe.png',
     color: '#00CED1',
-    description: 'DMG 30 | 30s | Oversized head deals heavy damage per hit.',
+    description: 'DMG 58 | 30s | Oversized head deals heavy damage per hit.',
   },
   light: {
     name: 'Light Pickaxe',
     price: 3000,
-    damage: 48,
+    damage: 94,
     scale: 0.7,
     gravityMult: 0.5,
     speedMult: 1.0,
     lifetime: 35000,
     texture: 'golden_pickaxe.png',
     color: '#FFD700',
-    description: 'DMG 48 | 35s | 0.5x gravity — floats slowly. Longest lifetime.',
+    description: 'DMG 94 | 35s | 0.5x gravity — floats slowly. Longest lifetime.',
   },
   swift: {
     name: 'Swift Pickaxe',
     price: 4000,
-    damage: 70,
+    damage: 136,
     scale: 0.75,
     gravityMult: 1.0,
     speedMult: 1.6,
     lifetime: 25000,
     texture: 'iron_pickaxe.png',
     color: '#C0C0C0',
-    description: 'DMG 70 | 25s | 1.6x speed — hits many more blocks. High total output.',
+    description: 'DMG 136 | 25s | 1.6x speed — hits many more blocks. High total output.',
   },
   elite: {
     name: 'Elite Pickaxe',
     price: 5000,
-    damage: 95,
+    damage: 186,
     scale: 0.9,
     gravityMult: 0.8,
     speedMult: 1.3,
     lifetime: 28000,
     texture: 'elite_pickaxe.png',
     color: '#9B59B6',
-    description: 'DMG 95 | 28s | Premium pick. Massive damage with balanced physics.',
+    description: 'DMG 186 | 28s | Premium pick. Massive damage with balanced physics.',
   },
   system: {
     name: 'PIKIT',
@@ -98,59 +96,56 @@ const PICKAXE_TYPES = {
   },
 };
 
-// ========== TNT Definition (single type) ==========
-// TNT only explodes on block contact, not by fuse timer
-// v4.7: price 8000, damage 30 — utility item, ~3% ROI (unchanged from v4.6)
+// ========== TNT Definition ==========
+// v5.1: price 6000, damage 500, 3×3 grid (8 surrounding blocks)
 const TNT_TYPES = {
   tnt: {
     name: 'TNT',
-    price: 8000,
-    damage: 30,           // Kills all common blocks + copper, weakens iron
-    radiusX: 1,           // 3 blocks wide (center ± 1)
-    radiusDown: 1,        // 3×3 uniform blast radius
+    price: 6000,
+    damage: 500,
+    radiusX: 1,           // 3×3 grid: center ± 1 column
+    radiusDown: 1,        // 3×3 grid: center ± 1 row
     texture: 'tnt.png',
   },
 };
 
 // ========== Block Definitions (10 tiers + special) ==========
-// v5.0: 10-tier system, weights sum to 10000
-// Tier 1-4: Common | Tier 5-6: Uncommon | Tier 7-10: Rare (tntResist)
-// NOTE: Chunk.js caches the block spawn pool on first use. After changing
-// block weights here, a full server restart is required to invalidate that cache.
+// v5.1: Rebalanced for 95% return rate
+// HP multiplier x1.29, Reward multiplier x1.60, Spawn decay x1.20
 const BLOCK_TYPES = {
   // === Tier 1-4: Common Blocks ===
   dirt: {
     name: 'Dirt',
-    hp: 10,
+    hp: 100,
     weight: 1988,
-    reward: 10,
+    reward: 100,
     rewardType: 'fixed',
     color: '#8B5E3C',
     texture: 'dirt.png',
   },
   clay: {
     name: 'Clay',
-    hp: 18,
+    hp: 129,
     weight: 1656,
-    reward: 25,
+    reward: 160,
     rewardType: 'fixed',
     color: '#A09070',
     texture: 'andesite.png',
   },
   gravel: {
     name: 'Gravel',
-    hp: 32,
+    hp: 167,
     weight: 1380,
-    reward: 63,
+    reward: 257,
     rewardType: 'fixed',
     color: '#696969',
     texture: 'cobblestone.png',
   },
   stone: {
     name: 'Stone',
-    hp: 58,
+    hp: 215,
     weight: 1150,
-    reward: 159,
+    reward: 412,
     rewardType: 'fixed',
     color: '#808080',
     texture: 'stone.png',
@@ -159,18 +154,18 @@ const BLOCK_TYPES = {
   // === Tier 5-6: Uncommon Blocks ===
   copper_block: {
     name: 'Copper Block',
-    hp: 105,
+    hp: 278,
     weight: 959,
-    reward: 399,
+    reward: 661,
     rewardType: 'fixed',
     color: '#B87333',
     texture: 'copper_ore.png',
   },
   iron_block: {
     name: 'Iron Block',
-    hp: 190,
+    hp: 359,
     weight: 799,
-    reward: 1003,
+    reward: 1059,
     rewardType: 'fixed',
     color: '#BC8F8F',
     texture: 'iron_ore.png',
@@ -179,9 +174,9 @@ const BLOCK_TYPES = {
   // === Tier 7-10: Rare Blocks (tntResist) ===
   emerald_block: {
     name: 'Emerald Block',
-    hp: 342,
+    hp: 464,
     weight: 666,
-    reward: 2520,
+    reward: 1699,
     rewardType: 'fixed',
     color: '#50C878',
     texture: 'emerald_ore.png',
@@ -189,9 +184,9 @@ const BLOCK_TYPES = {
   },
   gold_block: {
     name: 'Gold Block',
-    hp: 616,
+    hp: 599,
     weight: 555,
-    reward: 6333,
+    reward: 2723,
     rewardType: 'fixed',
     color: '#FFD700',
     texture: 'gold_ore.png',
@@ -199,9 +194,9 @@ const BLOCK_TYPES = {
   },
   netherite_block: {
     name: 'Netherite Block',
-    hp: 1110,
+    hp: 774,
     weight: 462,
-    reward: 15916,
+    reward: 4366,
     rewardType: 'fixed',
     color: '#4A3728',
     texture: 'netherite_ore.png',
@@ -209,9 +204,9 @@ const BLOCK_TYPES = {
   },
   diamond_block: {
     name: 'Diamond Block',
-    hp: 2000,
+    hp: 1000,
     weight: 385,
-    reward: 40000,
+    reward: 7000,
     rewardType: 'fixed',
     color: '#00CED1',
     texture: 'diamond_ore.png',
@@ -221,9 +216,9 @@ const BLOCK_TYPES = {
   // === Special Blocks ===
   jackpot: {
     name: 'Jackpot Block',
-    hp: 1500,
+    hp: 10000,
     weight: 0,
-    reward: 0,
+    reward: 250000,
     rewardType: 'fixed',
     color: '#FF00FF',
     texture: 'jackpot.png',
@@ -241,26 +236,23 @@ const BLOCK_TYPES = {
 };
 
 // ========== Jackpot System Config ==========
-// v4.8: pool-based spawn condition, HP 1500, dynamic reward from jackpotPool
 const JACKPOT_CONFIG = {
-  // SPAWN_THRESHOLD, REWARD, MIN_PLAYERS are v4.8 legacy — replaced by pool-based system
-  SPAWN_CHANCE: 0.0001,      // 0.01% chance per eligible block position (was 0.05%)
-  RESPAWN_CHANCE: 0.00001,   // 0.001% re-spawn chance after jackpot escapes viewport
-  HP: 1500,                  // Raid boss HP (was 300) — requires sustained team effort
+  SPAWN_CHANCE: 0.0001,
+  RESPAWN_CHANCE: 0.00001,
+  HP: 10000,
 };
 
 // ========== Jackpot Pool Config ==========
-// v4.8: house profit milestones feed the jackpot pool
 const JACKPOT_POOL_CONFIG = {
-  HOUSE_PROFIT_MILESTONE: 50000,  // Every 50,000cr of house profit triggers an allocation
-  POOL_ALLOCATION: 2500,          // 2,500 credits added to jackpot pool per milestone
-  MIN_POOL_TO_SPAWN: 50000,       // Pool must reach 50,000 before jackpot block can spawn
+  HOUSE_PROFIT_MILESTONE: 50000,
+  POOL_ALLOCATION: 2500,
+  MIN_POOL_TO_SPAWN: 50000,
 };
 
-// House edge target — v5.0: 10% (90% return rate)
-const HOUSE_EDGE = 0.10;
+// House edge target — v5.1: 5% (95% return rate)
+const HOUSE_EDGE = 0.05;
 
-// Initial balance
+// Initial balance (0 in production, use dev addBalance for testing)
 const INITIAL_BALANCE = 0;
 
 const SYSTEM_PICKAXE_COUNT = 3;

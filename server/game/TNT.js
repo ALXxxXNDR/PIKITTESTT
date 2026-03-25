@@ -75,27 +75,20 @@ class TNT {
     this.landed = true; // This will trigger explosion on next update
   }
 
-  // Check if block is in explosion range
-  // Rectangular area: ±radiusX blocks horizontally, radiusX up + radiusDown blocks down
+  // Check if block is in explosion range — grid-based 3×3
+  // Converts to block grid coordinates for accurate range check
   isInExplosionRange(block) {
-    const centerX = this.x + this.width / 2;
-    const centerY = this.y + this.height / 2;
-    const blockCenterX = block.x + block.width / 2;
-    const blockCenterY = block.y + block.height / 2;
+    // TNT grid position: column from x center, row from bottom edge (landing point)
+    const tntCol = Math.floor((this.x + this.width / 2 - GAME.WALL_THICKNESS) / GAME.BLOCK_SIZE);
+    const tntRow = Math.floor((this.y + this.height) / GAME.BLOCK_SIZE);
 
-    const dx = Math.abs(centerX - blockCenterX);
-    const dy = blockCenterY - centerY; // Positive = below TNT
+    // Block grid position
+    const blockCol = Math.floor((block.x + block.width / 2 - GAME.WALL_THICKNESS) / GAME.BLOCK_SIZE);
+    const blockRow = Math.floor((block.y + block.height / 2) / GAME.BLOCK_SIZE);
 
-    const maxDx = this.radiusX * GAME.BLOCK_SIZE;
-    // Asymmetric: radiusX blocks up, radiusDown blocks down
-    const maxDyUp = this.radiusX * GAME.BLOCK_SIZE;
-    const maxDyDown = this.radiusDown * GAME.BLOCK_SIZE;
-
-    if (dx > maxDx) return false;
-    if (dy > 0 && dy > maxDyDown) return false;  // Below TNT
-    if (dy < 0 && Math.abs(dy) > maxDyUp) return false; // Above TNT
-
-    return true;
+    // 3×3 grid: ±radiusX columns, ±radiusDown rows
+    return Math.abs(tntCol - blockCol) <= this.radiusX &&
+           Math.abs(tntRow - blockRow) <= this.radiusDown;
   }
 
   serialize() {
