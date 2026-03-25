@@ -108,7 +108,7 @@
   GameSocket.onPurchaseSuccess = (result) => {
     UI.showToast('Purchase complete!', 'success');
     UI.updatePlayerInfo(GameSocket.player);
-    UI.closeShop(); // Auto-close shop so user can watch
+    // Shop stays open for continuous purchasing
   };
 
   GameSocket.onPurchaseError = (message) => {

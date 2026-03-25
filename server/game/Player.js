@@ -220,9 +220,9 @@ class Player {
     this.connectedAt = Date.now();
     this.walletAddress = null; // Set on wallet login
 
-    // Session-based tracking (reset on field join)
-    this.sessionEarned = 0;
-    this.sessionSpent = 0;
+    // Charged credit flow tracking (for PNL leaderboard)
+    this.chargedEarned = 0;   // Credits earned from block mining (charged/withdrawable)
+    this.chargedSpent = 0;    // Credits spent on purchases (from charged credits only)
     this.lastProfitChangeAt = Date.now(); // For leaderboard tiebreaker
 
     // Quest tracking
@@ -255,15 +255,17 @@ class Player {
 
   // Spend credits: deduct from inGameCredits first, then chargedCredits
   spend(price, itemName) {
+    let chargedPortion = 0;
     if (this.inGameCredits >= price) {
       this.inGameCredits -= price;
     } else {
       const remaining = price - this.inGameCredits;
       this.inGameCredits = 0;
       this.chargedCredits -= remaining;
+      chargedPortion = remaining;
     }
     this.totalSpent += price;
-    this.sessionSpent += price;
+    this.chargedSpent += chargedPortion; // Track only charged credit outflow
     this.lastProfitChangeAt = Date.now();
     this._addHistory({ type: 'purchase', item: itemName, amount: -price, time: Date.now() });
   }
@@ -272,7 +274,7 @@ class Player {
   earn(amount, source) {
     this.chargedCredits += amount;
     this.totalEarned += amount;
-    this.sessionEarned += amount;
+    this.chargedEarned += amount; // Track charged credit inflow
     this.lastProfitChangeAt = Date.now();
     this._addHistory({ type: 'reward', item: source, amount: amount, time: Date.now() });
   }
@@ -400,11 +402,9 @@ class Player {
     return current >= target;
   }
 
-  // Reset session counters (called on field join)
+  // No-op: session counters removed in favor of all-time tracking
   resetSession() {
-    this.sessionEarned = 0;
-    this.sessionSpent = 0;
-    this.lastProfitChangeAt = Date.now();
+    // Kept for backward compatibility (called from GameEngine.addPlayer)
   }
 
   _tierLabel(tier) {

@@ -106,8 +106,8 @@ const TNT_TYPES = {
     name: 'TNT',
     price: 8000,
     damage: 30,           // Kills all common blocks + copper, weakens iron
-    radiusX: 2,           // 5 blocks wide (center ± 2)
-    radiusDown: 3,        // 3 extra blocks deeper than radiusX
+    radiusX: 1,           // 3 blocks wide (center ± 1)
+    radiusDown: 1,        // 3×3 uniform blast radius
     texture: 'tnt.png',
   },
 };
@@ -261,7 +261,9 @@ const JACKPOT_POOL_CONFIG = {
 const HOUSE_EDGE = 0.10;
 
 // Initial balance
-const INITIAL_BALANCE = 10000;
+const INITIAL_BALANCE = 0;
+
+const SYSTEM_PICKAXE_COUNT = 3;
 
 module.exports = {
   GAME,
@@ -272,4 +274,5 @@ module.exports = {
   JACKPOT_POOL_CONFIG,
   HOUSE_EDGE,
   INITIAL_BALANCE,
+  SYSTEM_PICKAXE_COUNT,
 };

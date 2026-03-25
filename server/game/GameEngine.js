@@ -1,7 +1,7 @@
 const Chunk = require('./Chunk');
 const Pickaxe = require('./Pickaxe');
 const TNT = require('./TNT');
-const { GAME, PICKAXE_TYPES, TNT_TYPES, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG } = require('./constants');
+const { GAME, PICKAXE_TYPES, TNT_TYPES, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG, SYSTEM_PICKAXE_COUNT } = require('./constants');
 
 const MAX_PICKAXES_PER_PLAYER = 1;
 
@@ -36,7 +36,7 @@ class GameEngine {
     this.jackpotBlockExists = false;   // Is there a live jackpot block on the field?
 
     // Leaderboard cache (updated every 2 seconds instead of every broadcast)
-    this._leaderboardCache = [];
+    this._leaderboardCache = { pnl: [], spent: [] };
     this._leaderboardLastUpdate = 0;
 
     // Per-field chat history (max 100 messages)
@@ -44,6 +44,9 @@ class GameEngine {
 
     // System pickaxe counter (avoid iterating all pickaxes every tick)
     this._systemPickaxeCount = 0;
+
+    // System account balance (rewards earned by system pickaxes)
+    this.systemAccountBalance = 0;
 
     // Jackpot pool (v4.8) — accumulates from house profit milestones
     this.jackpotPool = 0;
@@ -65,9 +68,11 @@ class GameEngine {
     this.broadcastInterval = setInterval(() => this.broadcast(), 1000 / GAME.BROADCAST_RATE);
     console.log(`[GameEngine:${this.fieldId}] Started (${GAME.TICK_RATE}fps tick, ${GAME.BROADCAST_RATE}fps broadcast, ${this.rewardMultiplier}x)`);
 
-    // Spawn the initial system pickaxe (Infinity lifetime, always present)
+    // Spawn initial system pickaxes (Infinity lifetime, always present)
     this._systemPickaxeCount = 0;
-    this._spawnSystemPickaxe();
+    for (let i = 0; i < SYSTEM_PICKAXE_COUNT; i++) {
+      this._spawnSystemPickaxe();
+    }
   }
 
   stop() {
@@ -149,9 +154,9 @@ class GameEngine {
       }
     }
 
-    // System pickaxe recovery (keep exactly 1 alive)
+    // System pickaxe recovery (maintain SYSTEM_PICKAXE_COUNT alive)
     if (now - this.lastSystemPickaxe > this.systemPickaxeInterval) {
-      if (this._systemPickaxeCount < 1) {
+      if (this._systemPickaxeCount < SYSTEM_PICKAXE_COUNT) {
         this._spawnSystemPickaxe();
         this.lastSystemPickaxe = now;
       }
@@ -183,9 +188,16 @@ class GameEngine {
           const reward = block.takeDamage(pickaxe.damage, now);
 
           if (reward !== null) {
-            // Block destroyed - give reward (skip for system pickaxes)
+            // Block destroyed - give reward
             const isSystem = pickaxe.ownerId === '__system__';
             const player = isSystem ? null : this.players.get(pickaxe.ownerId);
+
+            // System pickaxe: add reward to system account balance
+            if (isSystem) {
+              const sysReward = Math.round(reward * this.rewardMultiplier);
+              this.systemAccountBalance += sysReward;
+            }
+
             if (player) {
               // Jackpot block destroyed! — pay out the entire pool directly (reward=0 from constants)
               if (block.type === 'jackpot') {
@@ -280,8 +292,8 @@ class GameEngine {
     const chunkIndex = Math.floor(tnt.y / (GAME.CHUNK_HEIGHT * GAME.BLOCK_SIZE));
     let totalReward = 0;
 
-    // Damage blocks in surrounding chunks
-    for (let ci = chunkIndex - 2; ci <= chunkIndex + 2; ci++) {
+    // Damage blocks in surrounding chunks (±1 chunk is sufficient for 3×3 blast)
+    for (let ci = chunkIndex - 1; ci <= chunkIndex + 1; ci++) {
       const chunk = this.chunks.get(ci);
       if (!chunk) continue;
 
@@ -607,6 +619,7 @@ class GameEngine {
       playerCount: this.players.size,
       activePickaxes: this.pickaxes.size,
       jackpotPool: this.jackpotPool,
+      systemAccountBalance: this.systemAccountBalance,
     };
 
     this.io.to(this.roomName).emit('gameState', state);
@@ -622,20 +635,33 @@ class GameEngine {
     const now = Date.now();
     // Cache leaderboard for 2 seconds to avoid sorting every broadcast
     if (now - this._leaderboardLastUpdate > 2000) {
-      this._leaderboardCache = Array.from(this.players.values())
+      const playerArr = Array.from(this.players.values());
+
+      // PNL leaderboard (chargedEarned - chargedSpent, excludes quest/ingame credits)
+      const pnl = playerArr
         .map(p => ({
           name: p.name,
-          profit: Math.round(p.sessionEarned - p.sessionSpent),
-          earned: Math.round(p.sessionEarned),
+          profit: Math.round(p.chargedEarned - p.chargedSpent),
+          earned: Math.round(p.chargedEarned),
         }))
         .sort((a, b) => {
           if (b.profit !== a.profit) return b.profit - a.profit;
-          // Tiebreaker: earlier achiever ranks higher
-          const pa = this.players.get(Array.from(this.players.entries()).find(([,v]) => v.name === a.name)?.[0]);
-          const pb = this.players.get(Array.from(this.players.entries()).find(([,v]) => v.name === b.name)?.[0]);
+          const pa = playerArr.find(p => p.name === a.name);
+          const pb = playerArr.find(p => p.name === b.name);
           return (pa?.lastProfitChangeAt || 0) - (pb?.lastProfitChangeAt || 0);
         })
         .slice(0, 10);
+
+      // Total spent leaderboard (all-time)
+      const spent = playerArr
+        .map(p => ({
+          name: p.name,
+          totalSpent: Math.round(p.totalSpent),
+        }))
+        .sort((a, b) => b.totalSpent - a.totalSpent)
+        .slice(0, 10);
+
+      this._leaderboardCache = { pnl, spent };
       this._leaderboardLastUpdate = now;
     }
     return this._leaderboardCache;
