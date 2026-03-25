@@ -328,8 +328,8 @@ io.on('connection', (socket) => {
     }
     purchaseCooldowns.set(socket.id, now);
 
-    if (player.activePickaxes.length >= 1) {
-      return socket.emit('purchaseResult', { success: false, message: 'Max 1 pickaxe per field! Wait for it to expire.' });
+    if (player.activePickaxes.length >= 5) {
+      return socket.emit('purchaseResult', { success: false, message: 'Max 5 pickaxes per field!' });
     }
 
     const result = engine.buyPickaxe(player, data.type);

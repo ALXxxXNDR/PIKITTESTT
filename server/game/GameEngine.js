@@ -3,7 +3,7 @@ const Pickaxe = require('./Pickaxe');
 const TNT = require('./TNT');
 const { GAME, PICKAXE_TYPES, TNT_TYPES, BLOCK_TYPES, JACKPOT_CONFIG, JACKPOT_POOL_CONFIG, SYSTEM_PICKAXE_COUNT } = require('./constants');
 
-const MAX_PICKAXES_PER_PLAYER = 1;
+const MAX_PICKAXES_PER_PLAYER = 5;
 
 class GameEngine {
   constructor(io, fieldId = 'normal', rewardMultiplier = 1) {
@@ -535,10 +535,10 @@ class GameEngine {
     if (!def) return { error: 'Invalid pickaxe type' };
     if (type === 'system') return { error: 'Invalid pickaxe type' };
 
-    // Max 1 pickaxe per player per field
+    // Max 5 pickaxes per player per field
     const activeCount = Array.from(this.pickaxes.values())
       .filter(p => p.ownerId === player.id && !p.expired).length;
-    if (activeCount >= MAX_PICKAXES_PER_PLAYER) return { error: 'Max 1 pickaxe per field! Wait for it to expire.' };
+    if (activeCount >= MAX_PICKAXES_PER_PLAYER) return { error: `Max ${MAX_PICKAXES_PER_PLAYER} pickaxes per field!` };
 
     const effectivePrice = def.price * this.rewardMultiplier;
     if (!player.canAfford(effectivePrice)) return { error: 'Insufficient balance' };

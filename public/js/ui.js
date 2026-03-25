@@ -566,7 +566,7 @@ const UI = {
       'text-align: center',
       'margin-bottom: 8px',
     ].join('; ');
-    countIndicator.textContent = `Active Pickaxes: ${activeCount}/1`;
+    countIndicator.textContent = `Active Pickaxes: ${activeCount}/5`;
     pickaxeGrid.appendChild(countIndicator);
 
     for (const [type, def] of Object.entries(pickaxeTypes)) {
