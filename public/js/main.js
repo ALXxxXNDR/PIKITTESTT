@@ -45,6 +45,10 @@
     Renderer.setFieldTheme(data.fieldId);
     UI.updateFieldToggle(data.fieldId);
 
+    // Clear chat on field switch
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) chatMessages.innerHTML = '';
+
     // Re-render shop with new multiplied prices
     const config = GameSocket._cachedConfig;
     if (config) {
@@ -53,6 +57,15 @@
 
     if (GameSocket.player) {
       UI.updatePlayerInfo(GameSocket.player);
+    }
+  };
+
+  // Chat history (on field join/switch)
+  GameSocket.onChatHistory = (messages) => {
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+      chatMessages.innerHTML = '';
+      messages.forEach(msg => UI.addChatMessage(msg.name, msg.message));
     }
   };
 
@@ -68,13 +81,15 @@
       UI.updatePlayerInfo(GameSocket.player);
     }
 
-    // Jackpot notification (new ones only)
+    // Jackpot notification + high-value reward feed
     if (state.jackpots) {
       state.jackpots.forEach(jp => {
         if (jp.time > lastJackpotTime) {
           lastJackpotTime = jp.time;
           UI.showJackpot(jp);
           Camera.shake(15, 0.5);
+          // Add to reward feed
+          addRewardFeedItem(jp.playerName, jp.reward, jp.blockName);
         }
       });
     }
@@ -292,3 +307,20 @@
   // ===== Initialization =====
   GameSocket.connect();
 })();
+
+// ===== High-Value Reward Feed =====
+function addRewardFeedItem(playerName, reward, blockName) {
+  const feed = document.getElementById('reward-feed');
+  if (!feed) return;
+  const item = document.createElement('div');
+  item.className = 'reward-feed-item';
+  item.textContent = `${playerName} found ${reward.toLocaleString()}cr from ${blockName}!`;
+  feed.appendChild(item);
+  // Max 5 items
+  while (feed.children.length > 5) feed.removeChild(feed.firstChild);
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    item.classList.add('fade-out');
+    setTimeout(() => { if (item.parentNode) item.parentNode.removeChild(item); }, 500);
+  }, 4000);
+}

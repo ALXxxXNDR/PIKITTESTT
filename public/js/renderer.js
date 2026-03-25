@@ -6,8 +6,6 @@
 const Renderer = {
   canvas: null,
   ctx: null,
-  textures: {},
-  textureLoadPromises: [],
   ready: false,
   myPlayerId: null,
   pixelBlockCache: {},   // Pre-rendered block canvases
@@ -15,7 +13,6 @@ const Renderer = {
 
   // Rare block cinematic effect state
   rareBlockEffects: [],
-  jackpotBlockActive: false,
 
   // Field theme ('normal' or 'hardcore')
   fieldTheme: 'normal',
@@ -27,9 +24,6 @@ const Renderer = {
 
   // Cached background gradient
   _bgGradient: null,
-
-  // 8-bit pixel font
-  _pixelFont: '"Press Start 2P", "Courier New", monospace',
 
   init(canvasId) {
     this.canvas = document.getElementById(canvasId);
@@ -54,8 +48,7 @@ const Renderer = {
   // ========== 8-BIT BLOCK GENERATION ==========
   _generatePixelBlocks() {
     const S = 120; // block size
-    const P = 8;   // pixel size (120/8 = 15 "pixels" per block... let's use 10px = 12 pixels)
-    const G = 10;  // grid size per block
+    const G = 10;  // grid size per block (12 pixels per block)
 
     // Block designs: 12x12 pixel grids with color indices
     const blockDesigns = {

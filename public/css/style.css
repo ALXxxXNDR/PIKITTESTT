@@ -1423,6 +1423,75 @@ body {
 .btn-withdraw { background: hsl(0, 70%, 45%); color: #fff; }
 .btn-withdraw:hover { background: hsl(0, 70%, 50%); }
 
+/* === High-Value Reward Feed (right side) === */
+#reward-feed {
+  position: fixed;
+  top: 52px;
+  right: 8px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  max-width: 220px;
+}
+.reward-feed-item {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #FFD700;
+  background: rgba(0,0,0,0.85);
+  border: 2px solid rgba(255,215,0,0.4);
+  padding: 4px 8px;
+  animation: feedSlideIn 0.3s ease-out;
+}
+.reward-feed-item.fade-out {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+@keyframes feedSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* === Landscape Warning === */
+#landscape-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.95);
+  font-family: 'Courier New', monospace;
+  color: #fff;
+}
+.landscape-content {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 14px;
+}
+@media (orientation: landscape) and (max-width: 1024px) {
+  #landscape-warning { display: block; }
+}
+
+/* === Reconnection / Error Overlays === */
+#reconnect-overlay,
+#connect-error-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(0,0,0,0.9);
+  font-family: 'Courier New', monospace;
+  color: #fff;
+}
+.reconnect-content {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 13px;
+}
+
 /* === Responsive: Mobile === */
 @media (max-width: 768px) {
   .slide-panel { width: 85vw; }
@@ -1431,4 +1500,5 @@ body {
   .hud-stat { gap: 1px; }
   .hud-label { font-size: 9px; }
   .hud-value { font-size: 13px; }
+  #reward-feed { max-width: 160px; }
 }

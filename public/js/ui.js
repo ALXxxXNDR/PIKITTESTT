@@ -259,11 +259,20 @@ const UI = {
     if (!this._requireWallet()) return;
     this.myinfoOpen = !this.myinfoOpen;
     document.getElementById('myinfo-popup').classList.toggle('open', this.myinfoOpen);
+    // Show backdrop when myinfo is open
+    const backdrop = document.getElementById('panel-backdrop');
+    if (backdrop && this.myinfoOpen) backdrop.classList.add('active');
+    else if (backdrop && !this.myinfoOpen) backdrop.classList.remove('active');
   },
 
   closeMyInfo() {
     this.myinfoOpen = false;
     document.getElementById('myinfo-popup').classList.remove('open');
+    // Hide backdrop if no other panels open
+    if (!this.shopOpen && !this.menuOpen && !this.questOpen) {
+      const backdrop = document.getElementById('panel-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
+    }
   },
 
   toggleChat() {

@@ -220,6 +220,11 @@ class Player {
     this.connectedAt = Date.now();
     this.walletAddress = null; // Set on wallet login
 
+    // Session-based tracking (reset on field join)
+    this.sessionEarned = 0;
+    this.sessionSpent = 0;
+    this.lastProfitChangeAt = Date.now(); // For leaderboard tiebreaker
+
     // Quest tracking
     this.questProgress = {
       blocksDestroyed: 0,           // Total blocks destroyed
@@ -258,6 +263,8 @@ class Player {
       this.chargedCredits -= remaining;
     }
     this.totalSpent += price;
+    this.sessionSpent += price;
+    this.lastProfitChangeAt = Date.now();
     this._addHistory({ type: 'purchase', item: itemName, amount: -price, time: Date.now() });
   }
 
@@ -265,6 +272,8 @@ class Player {
   earn(amount, source) {
     this.chargedCredits += amount;
     this.totalEarned += amount;
+    this.sessionEarned += amount;
+    this.lastProfitChangeAt = Date.now();
     this._addHistory({ type: 'reward', item: source, amount: amount, time: Date.now() });
   }
 
@@ -391,8 +400,15 @@ class Player {
     return current >= target;
   }
 
+  // Reset session counters (called on field join)
+  resetSession() {
+    this.sessionEarned = 0;
+    this.sessionSpent = 0;
+    this.lastProfitChangeAt = Date.now();
+  }
+
   _tierLabel(tier) {
-    const labels = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+    const labels = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
     return labels[tier - 1] || `T${tier}`;
   }
 

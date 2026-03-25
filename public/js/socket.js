@@ -14,20 +14,79 @@ const GameSocket = {
   player: null,
   onStateUpdate: null,
 
+  _reconnectAttempts: 0,
+  _maxReconnectAttempts: 3,
+  _connectErrorTimer: null,
+  _initialConnected: false,
+
   connect() {
-    this.socket = io();
+    this.socket = io({ reconnectionAttempts: this._maxReconnectAttempts });
 
     this.socket.on('connect', () => {
       console.log('[Socket] Connected:', this.socket.id);
+      this._reconnectAttempts = 0;
+      this._initialConnected = true;
+      // Hide overlays
+      const ro = document.getElementById('reconnect-overlay');
+      const ce = document.getElementById('connect-error-screen');
+      if (ro) ro.style.display = 'none';
+      if (ce) ce.style.display = 'none';
+      if (this._connectErrorTimer) { clearInterval(this._connectErrorTimer); this._connectErrorTimer = null; }
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
+      this._reconnectAttempts = 0;
+      // Show reconnection overlay
+      const ro = document.getElementById('reconnect-overlay');
+      const msg = document.getElementById('reconnect-message');
+      const att = document.getElementById('reconnect-attempts');
+      const btn = document.getElementById('reconnect-refresh-btn');
+      if (ro) { ro.style.display = 'block'; if (msg) msg.textContent = '연결 끊김 - 재연결 중...'; if (btn) btn.style.display = 'none'; if (att) att.textContent = ''; }
       if (this.onDisconnect) this.onDisconnect(reason);
+    });
+
+    this.socket.io.on('reconnect_attempt', (attempt) => {
+      this._reconnectAttempts = attempt;
+      const att = document.getElementById('reconnect-attempts');
+      if (att) att.textContent = `재연결 시도 ${attempt}/${this._maxReconnectAttempts}`;
+    });
+
+    this.socket.io.on('reconnect_failed', () => {
+      const msg = document.getElementById('reconnect-message');
+      const btn = document.getElementById('reconnect-refresh-btn');
+      if (msg) msg.textContent = '서버와의 연결이 끊겼습니다. 새로고침 해주세요.';
+      if (btn) { btn.style.display = 'inline-block'; btn.onclick = () => location.reload(); }
     });
 
     this.socket.on('connect_error', (err) => {
       console.warn('[Socket] Connection error:', err.message);
+      if (!this._initialConnected) {
+        // Initial connection failure screen with countdown
+        const ce = document.getElementById('connect-error-screen');
+        if (ce && ce.style.display !== 'block') {
+          ce.style.display = 'block';
+          let countdown = 5;
+          const cd = document.getElementById('connect-error-countdown');
+          if (this._connectErrorTimer) clearInterval(this._connectErrorTimer);
+          this._connectErrorTimer = setInterval(() => {
+            countdown--;
+            if (cd) cd.textContent = `${countdown}초 후 재시도...`;
+            if (countdown <= 0) { countdown = 5; if (cd) cd.textContent = '재시도 중...'; }
+          }, 1000);
+        }
+      }
+    });
+
+    // Session evicted by another login
+    this.socket.on('sessionEvicted', (data) => {
+      alert(data.message || '다른 기기에서 로그인되어 현재 세션이 종료되었습니다.');
+      location.reload();
+    });
+
+    // Chat history on field join/switch
+    this.socket.on('chatHistory', (messages) => {
+      if (this.onChatHistory) this.onChatHistory(messages);
     });
 
     // Receive initial config (including blockTypes)

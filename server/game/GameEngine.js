@@ -39,6 +39,9 @@ class GameEngine {
     this._leaderboardCache = [];
     this._leaderboardLastUpdate = 0;
 
+    // Per-field chat history (max 100 messages)
+    this.chatHistory = [];
+
     // System pickaxe counter (avoid iterating all pickaxes every tick)
     this._systemPickaxeCount = 0;
 
@@ -294,6 +297,9 @@ class GameEngine {
           const reward = block.takeDamage(effectiveDamage, now);
           if (reward !== null) {
             totalReward += reward;
+            // Track TNT-destroyed blocks for quest progress
+            const tntOwner = this.players.get(tnt.ownerId);
+            if (tntOwner) tntOwner.trackBlockDestroyed(block.type);
           }
         }
       }
@@ -549,11 +555,22 @@ class GameEngine {
     player.trackTNTPurchase(); // Quest tracking
     this.trackCreditSpent(effectivePrice); // Track for jackpot
 
-    // Random position, spawned above camera (inside thin walls)
+    // Random position, spawned in active mining zone
     const minX = GAME.WALL_THICKNESS;
     const maxX = GAME.WALL_THICKNESS + GAME.BLOCK_SIZE * GAME.CHUNK_WIDTH - GAME.BLOCK_SIZE;
     const x = minX + Math.random() * (maxX - minX);
-    const y = this.cameraY - GAME.INTERNAL_HEIGHT / 2;
+
+    // Calculate active mining zone from pickaxe positions
+    let spawnY = this.cameraY - GAME.INTERNAL_HEIGHT / 2; // fallback
+    const playerPickaxeYs = [];
+    for (const [, p] of this.pickaxes) {
+      if (p.ownerId !== '__system__') playerPickaxeYs.push(p.y);
+    }
+    if (playerPickaxeYs.length > 0) {
+      const minPY = Math.min(...playerPickaxeYs);
+      spawnY = minPY - GAME.BLOCK_SIZE * 2; // Spawn above active zone
+    }
+    const y = spawnY;
 
     const tnt = new TNT(type, player.id, player.name, x, y);
     this.tnts.set(tnt.id, tnt);
@@ -608,18 +625,37 @@ class GameEngine {
       this._leaderboardCache = Array.from(this.players.values())
         .map(p => ({
           name: p.name,
-          profit: Math.round(p.totalEarned - p.totalSpent),
-          earned: Math.round(p.totalEarned),
+          profit: Math.round(p.sessionEarned - p.sessionSpent),
+          earned: Math.round(p.sessionEarned),
         }))
-        .sort((a, b) => b.profit - a.profit)
+        .sort((a, b) => {
+          if (b.profit !== a.profit) return b.profit - a.profit;
+          // Tiebreaker: earlier achiever ranks higher
+          const pa = this.players.get(Array.from(this.players.entries()).find(([,v]) => v.name === a.name)?.[0]);
+          const pb = this.players.get(Array.from(this.players.entries()).find(([,v]) => v.name === b.name)?.[0]);
+          return (pa?.lastProfitChangeAt || 0) - (pb?.lastProfitChangeAt || 0);
+        })
         .slice(0, 10);
       this._leaderboardLastUpdate = now;
     }
     return this._leaderboardCache;
   }
 
+  // Chat history management
+  addChatMessage(msg) {
+    this.chatHistory.push(msg);
+    if (this.chatHistory.length > 100) {
+      this.chatHistory = this.chatHistory.slice(-100);
+    }
+  }
+
+  getChatHistory(count = 50) {
+    return this.chatHistory.slice(-count);
+  }
+
   // ========== Player Management ==========
   addPlayer(player) {
+    player.resetSession(); // Reset session counters on field join
     this.players.set(player.id, player);
   }
 

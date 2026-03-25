@@ -336,6 +336,35 @@
     </div>
   </div>
 
+  <!-- High-Value Reward Feed (right side) -->
+  <div id="reward-feed"></div>
+
+  <!-- Landscape Warning Overlay -->
+  <div id="landscape-warning">
+    <div class="landscape-content">
+      <div style="font-size:48px;margin-bottom:16px;">📱</div>
+      <div>세로 모드를 사용해 주세요</div>
+      <div style="font-size:10px;margin-top:8px;opacity:0.6;">Please rotate your device to portrait mode</div>
+    </div>
+  </div>
+
+  <!-- Reconnection Overlay -->
+  <div id="reconnect-overlay" style="display:none;">
+    <div class="reconnect-content">
+      <div id="reconnect-message">연결 끊김 - 재연결 중...</div>
+      <div id="reconnect-attempts" style="font-size:10px;margin-top:8px;opacity:0.7;"></div>
+      <button id="reconnect-refresh-btn" style="display:none;margin-top:12px;padding:8px 16px;font-family:'Courier New',monospace;font-size:11px;border:2px solid #fff;background:transparent;color:#fff;cursor:pointer;">새로고침</button>
+    </div>
+  </div>
+
+  <!-- Initial Connection Error Screen -->
+  <div id="connect-error-screen" style="display:none;">
+    <div class="reconnect-content">
+      <div>서버에 연결할 수 없습니다</div>
+      <div id="connect-error-countdown" style="font-size:10px;margin-top:8px;opacity:0.7;">5초 후 재시도...</div>
+    </div>
+  </div>
+
   <!-- Toast Notifications -->
   <div id="toast-container"></div>
 

@@ -50,8 +50,18 @@ function findPlayer(socketId) {
   return null;
 }
 
-// ========== Chat rate limiting ==========
+// ========== Rate limiting ==========
 const chatCooldowns = new Map(); // socketId -> lastMessageTime
+const purchaseCooldowns = new Map(); // socketId -> lastPurchaseTime
+
+// ========== Reconnection grace period (30s) ==========
+const pendingDisconnections = new Map(); // walletAddress|name -> { player, timeout, fieldId }
+
+// ========== Nonce tracking for wallet login ==========
+const usedNonces = new Set();
+
+// ========== System message batching ==========
+const joinLeaveCounters = new Map(); // fieldId -> { joins: count, leaves: count, timer }
 
 // ========== Transaction replay protection ==========
 // TODO: In production, replace with a persistent store (DB). This Set grows unbounded in memory.
@@ -84,12 +94,39 @@ io.on('connection', (socket) => {
       return socket.emit('error', { message: 'Already joined' });
     }
     const rawName = String(data.name || 'Player').replace(/[<>&"'/]/g, '').trim();
-    const name = (rawName || 'Player').substring(0, 12);
+    let name = (rawName || 'Player').substring(0, 12);
+
+    // Check for reconnection grace period
+    const pending = pendingDisconnections.get(name);
+    if (pending) {
+      clearTimeout(pending.timeout);
+      pendingDisconnections.delete(name);
+      const player = pending.player;
+      player.id = socket.id;
+      const currentField = socket._currentField || pending.fieldId;
+      const engine = engines[currentField];
+      if (engine) engine.addPlayer(player);
+      socket.emit('joined', player.serializeFull());
+      socket.emit('chatHistory', engine ? engine.getChatHistory() : []);
+      console.log(`[Reconnect] ${name} restored (${socket.id})`);
+      return;
+    }
+
+    // Auto-number duplicate nicknames
+    const currentField = socket._currentField || 'normal';
+    const engine = engines[currentField];
+    if (engine) {
+      let baseName = name;
+      let counter = 2;
+      const existingNames = new Set(Array.from(engine.players.values()).map(p => p.name));
+      while (existingNames.has(name)) {
+        name = `${baseName}#${counter++}`;
+      }
+    }
+
     const player = new Player(socket.id, name);
 
     // Auto-add player to current field engine
-    const currentField = socket._currentField || 'normal';
-    const engine = engines[currentField];
     if (engine && !engine.players.has(socket.id)) {
       engine.addPlayer(player);
       player.trackLogin();
@@ -99,6 +136,7 @@ io.on('connection', (socket) => {
     }
 
     socket.emit('joined', player.serializeFull());
+    if (engine) socket.emit('chatHistory', engine.getChatHistory());
     console.log(`[Join] ${name} -> ${currentField} (${socket.id})`);
   });
 
@@ -120,12 +158,60 @@ io.on('connection', (socket) => {
         return socket.emit('error', { message: 'Signature verification failed' });
       }
 
+      // Verify timestamp within 5 minutes
+      const msgMatch = data.message.match(/at (\d+)/);
+      if (msgMatch) {
+        const msgTime = parseInt(msgMatch[1]);
+        if (Math.abs(Date.now() - msgTime) > 5 * 60 * 1000) {
+          return socket.emit('error', { message: 'Login expired. Please try again.' });
+        }
+        // Prevent nonce replay
+        const nonceKey = `${data.address.toLowerCase()}_${msgTime}`;
+        if (usedNonces.has(nonceKey)) {
+          return socket.emit('error', { message: 'Nonce already used' });
+        }
+        usedNonces.add(nonceKey);
+        // Auto-clean old nonces (older than 10 minutes)
+        setTimeout(() => usedNonces.delete(nonceKey), 10 * 60 * 1000);
+      }
+
+      const walletAddr = data.address.toLowerCase();
+
+      // Check for reconnection grace period
+      const pending = pendingDisconnections.get(walletAddr);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingDisconnections.delete(walletAddr);
+        const player = pending.player;
+        player.id = socket.id;
+        const currentField = socket._currentField || pending.fieldId;
+        const engine = engines[currentField];
+        if (engine) engine.addPlayer(player);
+        socket.emit('joined', player.serializeFull());
+        if (engine) socket.emit('chatHistory', engine.getChatHistory());
+        console.log(`[WalletReconnect] ${player.name} restored (${socket.id})`);
+        return;
+      }
+
+      // Evict duplicate wallet session
+      for (const [, otherSocket] of io.sockets.sockets) {
+        if (otherSocket.id === socket.id) continue;
+        const otherPlayer = findPlayer(otherSocket.id);
+        if (otherPlayer && otherPlayer.walletAddress === walletAddr) {
+          otherSocket.emit('sessionEvicted', { message: '다른 기기에서 로그인되어 현재 세션이 종료되었습니다.' });
+          for (const eng of Object.values(engines)) eng.removePlayer(otherSocket.id);
+          otherSocket.disconnect(true);
+          console.log(`[WalletEvict] ${otherPlayer.name} evicted (${otherSocket.id})`);
+          break;
+        }
+      }
+
       // Use shortened address as name (0x1234...abcd)
       const shortAddr = data.shortAddress || `${data.address.slice(0, 6)}...${data.address.slice(-4)}`;
       const name = shortAddr.substring(0, 13); // Safety cap
 
       const player = new Player(socket.id, name);
-      player.walletAddress = data.address.toLowerCase(); // Store full address
+      player.walletAddress = walletAddr; // Store full address
 
       // Auto-add player to current field engine (spectator is already in a room)
       const currentField = socket._currentField || 'normal';
@@ -139,6 +225,7 @@ io.on('connection', (socket) => {
       }
 
       socket.emit('joined', player.serializeFull());
+      if (engine) socket.emit('chatHistory', engine.getChatHistory());
       console.log(`[WalletJoin] ${name} -> ${currentField} (${data.address}) (${socket.id})`);
     } catch (err) {
       console.error('[WalletJoin] Verification error:', err.message);
@@ -198,6 +285,8 @@ io.on('connection', (socket) => {
     }
 
     socket.emit('fieldSelected', { fieldId, multiplier: engine.rewardMultiplier });
+    // Send chat history for new field
+    socket.emit('chatHistory', engine.getChatHistory());
   });
 
   // Chat message
@@ -217,12 +306,10 @@ io.on('connection', (socket) => {
     const message = String(data.message || '').trim().substring(0, 200);
     if (!message) return;
 
-    // Send chat only to the same field
-    io.to(engine.roomName).emit('chatMessage', {
-      name: player.name,
-      message,
-      time: now,
-    });
+    // Store and broadcast chat to the same field
+    const chatMsg = { name: player.name, message, time: now };
+    engine.addChatMessage(chatMsg);
+    io.to(engine.roomName).emit('chatMessage', chatMsg);
   });
 
   // Buy pickaxe (max 1 active pickaxe per player)
@@ -232,6 +319,14 @@ io.on('connection', (socket) => {
     const player = engine.players.get(socket.id);
     if (!player) return socket.emit('error', { message: 'Please join first' });
     if (!data || typeof data.type !== 'string') return;
+
+    // 500ms purchase cooldown
+    const now = Date.now();
+    const lastPurchase = purchaseCooldowns.get(socket.id) || 0;
+    if (now - lastPurchase < 500) {
+      return socket.emit('purchaseResult', { success: false, message: 'Purchase cooldown active' });
+    }
+    purchaseCooldowns.set(socket.id, now);
 
     if (player.activePickaxes.length >= 1) {
       return socket.emit('purchaseResult', { success: false, message: 'Max 1 pickaxe per field! Wait for it to expire.' });
@@ -253,11 +348,25 @@ io.on('connection', (socket) => {
     if (!player) return socket.emit('error', { message: 'Please join first' });
     if (!data || typeof data.type !== 'string') return;
 
-    const result = engine.buyTNT(player, data.type);
-    if (result.error) {
-      socket.emit('purchaseResult', { success: false, message: result.error });
-    } else {
-      socket.emit('purchaseResult', { success: true, item: result.tnt, player: player.serialize() });
+    // 500ms purchase cooldown
+    const tntNow = Date.now();
+    const lastTntPurchase = purchaseCooldowns.get(socket.id) || 0;
+    if (tntNow - lastTntPurchase < 500) {
+      return socket.emit('purchaseResult', { success: false, message: 'Purchase cooldown active' });
+    }
+    purchaseCooldowns.set(socket.id, tntNow);
+
+    try {
+      const result = engine.buyTNT(player, data.type);
+      if (result.error) {
+        socket.emit('purchaseResult', { success: false, message: result.error });
+      } else {
+        socket.emit('purchaseResult', { success: true, item: result.tnt, player: player.serialize() });
+      }
+    } catch (err) {
+      // TNT creation error rollback
+      console.error('[TNT] Creation error:', err.message);
+      socket.emit('purchaseResult', { success: false, message: 'TNT 생성에 실패했습니다. 크레딧이 복구되었습니다.' });
     }
   });
 
@@ -503,21 +612,30 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Disconnect
+  // Disconnect — 30s grace period for reconnection
   socket.on('disconnect', () => {
     const player = findPlayer(socket.id);
     if (player) {
-      // Broadcast player left to current field
-      if (socket._currentField) {
-        io.to(`field:${socket._currentField}`).emit('playerLeft', { name: player.name, time: Date.now() });
-      }
-      console.log(`[Disconnect] ${player.name} (${socket.id})`);
-    }
-    // Remove from whichever engine they're in
-    for (const engine of Object.values(engines)) {
-      engine.removePlayer(socket.id);
+      const fieldId = socket._currentField || 'normal';
+      const reconnectKey = player.walletAddress || player.name;
+
+      // Set 30s grace period
+      const timeout = setTimeout(() => {
+        pendingDisconnections.delete(reconnectKey);
+        // Final removal after grace period
+        for (const engine of Object.values(engines)) {
+          engine.removePlayer(player.id);
+        }
+        io.to(`field:${fieldId}`).emit('playerLeft', { name: player.name, time: Date.now() });
+        console.log(`[Disconnect] ${player.name} grace expired (${socket.id})`);
+      }, 30000);
+
+      // Store pending disconnection (don't remove from engine yet for pickaxe preservation)
+      pendingDisconnections.set(reconnectKey, { player, timeout, fieldId });
+      console.log(`[Disconnect] ${player.name} grace period started (${socket.id})`);
     }
     chatCooldowns.delete(socket.id);
+    purchaseCooldowns.delete(socket.id);
   });
 });
 
