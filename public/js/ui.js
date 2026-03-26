@@ -10,8 +10,15 @@ const UI = {
   lbOpen: false,
   myinfoOpen: false,
   questOpen: false,
+  settingsOpen: false,
   spawnAlertsEnabled: true,
   rewardAlertsEnabled: true,
+  bgmVolume: 50,
+  sfxVolume: 70,
+  shortcutProtection: true,
+  _shortcutPending: null, // { key, type, itemName, isTNT }
+  _bgm: null,
+  _sfx: { hit: [], spawn: null, reward: null },
   _questData: null, // Cached quest data
 
   // HTML escape to prevent XSS
@@ -48,23 +55,7 @@ const UI = {
     document.getElementById('menu-btn').addEventListener('click', () => this.toggleMenu());
     document.getElementById('menu-close-btn').addEventListener('click', () => this.closeMenu());
 
-    // Notification toggles (spawn / reward)
-    const spawnBtn = document.getElementById('notif-spawn-btn');
-    const rewardBtn = document.getElementById('notif-reward-btn');
-    if (spawnBtn) {
-      spawnBtn.addEventListener('click', () => {
-        this.spawnAlertsEnabled = !this.spawnAlertsEnabled;
-        spawnBtn.className = 'notif-toggle-btn ' + (this.spawnAlertsEnabled ? 'on' : 'off');
-        spawnBtn.title = 'Spawn alerts ' + (this.spawnAlertsEnabled ? 'ON' : 'OFF');
-      });
-    }
-    if (rewardBtn) {
-      rewardBtn.addEventListener('click', () => {
-        this.rewardAlertsEnabled = !this.rewardAlertsEnabled;
-        rewardBtn.className = 'notif-toggle-btn ' + (this.rewardAlertsEnabled ? 'on' : 'off');
-        rewardBtn.title = 'Reward alerts ' + (this.rewardAlertsEnabled ? 'ON' : 'OFF');
-      });
-    }
+    // Notification toggles moved to Settings panel
 
     // Chat toggle
     document.getElementById('chat-toggle-btn').addEventListener('click', () => this.toggleChat());
@@ -161,6 +152,18 @@ const UI = {
     document.getElementById('hardcore-ok-btn').addEventListener('click', () => this._onHardcoreConfirm());
     document.getElementById('hardcore-cancel-btn').addEventListener('click', () => this._onHardcoreCancel());
 
+    // Settings panel
+    document.getElementById('settings-btn').addEventListener('click', () => this.toggleSettings());
+    document.getElementById('settings-close-btn').addEventListener('click', () => this.closeSettings());
+    this._initSettings();
+
+    // Keyboard shortcuts
+    this._initKeyboardShortcuts();
+
+    // Shortcut confirm modal
+    document.getElementById('shortcut-ok-btn').addEventListener('click', () => this._onShortcutConfirm());
+    document.getElementById('shortcut-cancel-btn').addEventListener('click', () => this._closeShortcutConfirm());
+
     // Backdrop for panels (click to close)
     this._createBackdrop();
   },
@@ -174,6 +177,7 @@ const UI = {
       this.closeMenu();
       this.closeMyInfo();
       this.closeQuest();
+      this.closeSettings();
     });
     document.getElementById('canvas-container').appendChild(backdrop);
   },
@@ -1128,6 +1132,242 @@ const UI = {
         setTimeout(() => banner.remove(), 500);
       }
     }, duration);
+  },
+
+  // ===== Settings Panel =====
+  _initSettings() {
+    // Load saved settings from localStorage
+    const saved = {
+      spawn: localStorage.getItem('pikit_spawn_alert'),
+      reward: localStorage.getItem('pikit_reward_alert'),
+      bgmVol: localStorage.getItem('pikit_bgm_volume'),
+      sfxVol: localStorage.getItem('pikit_sfx_volume'),
+      protection: localStorage.getItem('pikit_shortcut_protection'),
+    };
+
+    if (saved.spawn !== null) this.spawnAlertsEnabled = saved.spawn !== 'false';
+    if (saved.reward !== null) this.rewardAlertsEnabled = saved.reward !== 'false';
+    if (saved.bgmVol !== null) this.bgmVolume = parseInt(saved.bgmVol) || 0;
+    if (saved.sfxVol !== null) this.sfxVolume = parseInt(saved.sfxVol) || 0;
+    if (saved.protection !== null) this.shortcutProtection = saved.protection !== 'false';
+
+    // Sync UI with loaded state
+    document.getElementById('setting-spawn').checked = this.spawnAlertsEnabled;
+    document.getElementById('setting-reward').checked = this.rewardAlertsEnabled;
+    document.getElementById('setting-bgm-volume').value = this.bgmVolume;
+    document.getElementById('bgm-volume-label').textContent = this.bgmVolume;
+    document.getElementById('setting-sfx-volume').value = this.sfxVolume;
+    document.getElementById('sfx-volume-label').textContent = this.sfxVolume;
+    document.getElementById('setting-shortcut-protection').checked = this.shortcutProtection;
+
+    // Notification toggle handlers
+    document.getElementById('setting-spawn').addEventListener('change', (e) => {
+      this.spawnAlertsEnabled = e.target.checked;
+      localStorage.setItem('pikit_spawn_alert', this.spawnAlertsEnabled);
+    });
+
+    document.getElementById('setting-reward').addEventListener('change', (e) => {
+      this.rewardAlertsEnabled = e.target.checked;
+      localStorage.setItem('pikit_reward_alert', this.rewardAlertsEnabled);
+    });
+
+    // Volume sliders
+    document.getElementById('setting-bgm-volume').addEventListener('input', (e) => {
+      this.bgmVolume = parseInt(e.target.value);
+      document.getElementById('bgm-volume-label').textContent = this.bgmVolume;
+      localStorage.setItem('pikit_bgm_volume', this.bgmVolume);
+      if (this._bgm) this._bgm.volume = this.bgmVolume / 100;
+    });
+
+    document.getElementById('setting-sfx-volume').addEventListener('input', (e) => {
+      this.sfxVolume = parseInt(e.target.value);
+      document.getElementById('sfx-volume-label').textContent = this.sfxVolume;
+      localStorage.setItem('pikit_sfx_volume', this.sfxVolume);
+    });
+
+    document.getElementById('setting-shortcut-protection').addEventListener('change', (e) => {
+      this.shortcutProtection = e.target.checked;
+      localStorage.setItem('pikit_shortcut_protection', this.shortcutProtection);
+    });
+
+    // Initialize audio system
+    this._initAudio();
+  },
+
+  // ===== Audio System =====
+  _initAudio() {
+    // BGM
+    this._bgm = new Audio('/audio/bgm.wav');
+    this._bgm.loop = true;
+    this._bgm.volume = this.bgmVolume / 100;
+
+    // SFX (preload)
+    this._sfx.hit = [new Audio('/audio/hit1.wav'), new Audio('/audio/hit2.wav')];
+    this._sfx.spawn = new Audio('/audio/spawn.wav');
+    this._sfx.reward = new Audio('/audio/reward.wav');
+
+    // Browsers require user interaction before playing audio
+    const startBGM = () => {
+      this._bgm.play().catch(() => {});
+      document.removeEventListener('click', startBGM);
+      document.removeEventListener('keydown', startBGM);
+    };
+    document.addEventListener('click', startBGM);
+    document.addEventListener('keydown', startBGM);
+  },
+
+  playSFX(type) {
+    const vol = this.sfxVolume / 100;
+    if (vol === 0) return;
+
+    let audio;
+    if (type === 'hit') {
+      // Random between hit1 and hit2
+      const src = this._sfx.hit[Math.random() < 0.5 ? 0 : 1];
+      audio = src.cloneNode();
+    } else if (type === 'spawn') {
+      audio = this._sfx.spawn.cloneNode();
+    } else if (type === 'reward') {
+      audio = this._sfx.reward.cloneNode();
+    } else {
+      return;
+    }
+    audio.volume = vol;
+    audio.play().catch(() => {});
+  },
+
+  toggleSettings() {
+    if (this.settingsOpen) {
+      this.closeSettings();
+    } else {
+      this.closeShop();
+      this.closeMenu();
+      this.closeMyInfo();
+      this.closeQuest();
+      this.settingsOpen = true;
+      document.getElementById('settings-panel').classList.add('open');
+      document.getElementById('panel-backdrop').classList.add('show');
+    }
+  },
+
+  closeSettings() {
+    if (!this.settingsOpen) return;
+    this.settingsOpen = false;
+    document.getElementById('settings-panel').classList.remove('open');
+    if (!this.shopOpen && !this.menuOpen && !this.myinfoOpen && !this.questOpen) {
+      document.getElementById('panel-backdrop').classList.remove('show');
+    }
+  },
+
+  // ===== Keyboard Shortcuts =====
+  // Use e.code (physical key) so it works regardless of input language (Korean, etc.)
+  _SHORTCUT_CODE_MAP: {
+    'Digit1': { key: '1', type: 'basic', itemName: 'Basic Pickaxe', isTNT: false },
+    'Digit2': { key: '2', type: 'power', itemName: 'Power Pickaxe', isTNT: false },
+    'Digit3': { key: '3', type: 'light', itemName: 'Light Pickaxe', isTNT: false },
+    'Digit4': { key: '4', type: 'swift', itemName: 'Swift Pickaxe', isTNT: false },
+    'Digit5': { key: '5', type: 'elite', itemName: 'Elite Pickaxe', isTNT: false },
+    'KeyT':   { key: 't', type: 'tnt', itemName: 'TNT', isTNT: true },
+  },
+
+  _initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Ignore if typing in chat input
+      if (document.activeElement && document.activeElement.id === 'chat-input') return;
+      // Ignore if any other input/textarea is focused
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+      // Ignore if any panel/popup is open (except shortcut confirm itself)
+      if (this.shopOpen || this.menuOpen || this.myinfoOpen || this.questOpen || this.lbOpen || this.settingsOpen) return;
+
+      const code = e.code;
+
+      // If shortcut confirm modal is open, handle same-key re-press
+      if (this._shortcutPending) {
+        if (code === this._shortcutPending.code) {
+          e.preventDefault();
+          this._onShortcutConfirm();
+          return;
+        }
+        if (e.key === 'Escape') {
+          this._closeShortcutConfirm();
+          return;
+        }
+        return;
+      }
+
+      const mapping = this._SHORTCUT_CODE_MAP[code];
+      if (!mapping) return;
+
+      e.preventDefault();
+
+      // Must be logged in
+      if (!this._requireWallet()) return;
+
+      // Check if shortcut protection is on AND user hasn't skipped this key
+      const skipKey = `pikit_shortcut_skip_${mapping.key}`;
+      if (this.shortcutProtection && localStorage.getItem(skipKey) !== 'true') {
+        this._showShortcutConfirm(code, mapping);
+        return;
+      }
+
+      // Direct purchase (protection off or "don't ask again" was checked)
+      this._executeShortcutPurchase(mapping);
+    });
+  },
+
+  _showShortcutConfirm(code, mapping) {
+    this._shortcutPending = { code, ...mapping };
+    const isTNT = mapping.isTNT;
+
+    const title = document.getElementById('shortcut-confirm-title');
+    const text = document.getElementById('shortcut-confirm-text');
+    const okBtn = document.getElementById('shortcut-ok-btn');
+    const icon = document.getElementById('shortcut-confirm-icon');
+
+    title.textContent = 'Shortcut Alert';
+    title.className = 'confirm-modal-title' + (isTNT ? ' tnt' : '');
+
+    const keyDisplay = mapping.key.toUpperCase();
+    const keyClass = isTNT ? 'key-inline tnt' : 'key-inline';
+    text.innerHTML = `Press <span class="${keyClass}">${keyDisplay}</span> again to purchase <strong>${this._esc(mapping.itemName)}</strong>.`;
+
+    okBtn.className = 'btn btn-modal ' + (isTNT ? 'btn-tnt' : 'btn-primary');
+    okBtn.textContent = 'Purchase';
+
+    if (isTNT) {
+      icon.querySelector('svg').style.stroke = 'hsl(0, 84%, 60%)';
+    } else {
+      icon.querySelector('svg').style.stroke = 'hsl(47, 100%, 50%)';
+    }
+
+    document.getElementById('shortcut-dont-ask').checked = false;
+    document.getElementById('shortcut-confirm-modal').classList.add('open');
+  },
+
+  _onShortcutConfirm() {
+    if (!this._shortcutPending) return;
+    const { key } = this._shortcutPending;
+
+    // Save "don't ask again" preference
+    if (document.getElementById('shortcut-dont-ask').checked) {
+      localStorage.setItem(`pikit_shortcut_skip_${key}`, 'true');
+    }
+
+    this._executeShortcutPurchase(this._shortcutPending);
+    this._closeShortcutConfirm();
+  },
+
+  _closeShortcutConfirm() {
+    this._shortcutPending = null;
+    document.getElementById('shortcut-confirm-modal').classList.remove('open');
+  },
+
+  _executeShortcutPurchase(mapping) {
+    if (mapping.isTNT) {
+      GameSocket.buyTNT('tnt');
+    } else {
+      GameSocket.buyPickaxe(mapping.type);
+    }
   },
 
 };

@@ -85,10 +85,10 @@ const PICKAXE_TYPES = {
   system: {
     name: 'PIKIT',
     price: 0,
-    damage: 8,
+    damage: 50,
     scale: 1.2,
     gravityMult: 0.8,
-    speedMult: 0.6,
+    speedMult: 1.4,
     lifetime: Infinity,
     texture: 'system_pickaxe.png',
     color: '#FF00FF',

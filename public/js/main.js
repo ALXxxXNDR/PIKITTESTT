@@ -69,6 +69,9 @@
     }
   };
 
+  // Track my pickaxes' blocksDestroyed for hit SFX
+  let _myPickaxeBlocks = {};
+
   GameSocket.onStateUpdate = (state) => {
     latestState = state;
     Camera.targetY = state.cameraY;
@@ -79,6 +82,22 @@
 
     if (GameSocket.player) {
       UI.updatePlayerInfo(GameSocket.player);
+
+      // Detect block hit: compare blocksDestroyed count for my pickaxes
+      if (state.pickaxes) {
+        const myId = GameSocket.player.id;
+        const currentBlocks = {};
+        for (const p of state.pickaxes) {
+          if (p.ownerId === myId) {
+            currentBlocks[p.id] = p.blocksDestroyed || 0;
+            const prev = _myPickaxeBlocks[p.id] || 0;
+            if (currentBlocks[p.id] > prev) {
+              UI.playSFX('hit');
+            }
+          }
+        }
+        _myPickaxeBlocks = currentBlocks;
+      }
     }
 
     // Jackpot notification + high-value reward feed
@@ -107,6 +126,7 @@
 
   GameSocket.onPurchaseSuccess = (result) => {
     UI.showToast('Purchase complete!', 'success');
+    UI.playSFX('spawn');
     UI.updatePlayerInfo(GameSocket.player);
     // Shop stays open for continuous purchasing
   };
@@ -129,6 +149,7 @@
       ? `Pickaxe expired! Earned ${data.totalReward.toLocaleString()} (${data.blocksDestroyed} blocks)`
       : `Pickaxe expired! (no earnings)`;
     UI.showToast(msg, data.totalReward > 0 ? 'success' : 'info');
+    if (data.totalReward > 0) UI.playSFX('reward');
     GameSocket.getMyInfo();
   };
 
@@ -155,6 +176,10 @@
   GameSocket.onRareBlockDestroyed = (data) => {
     Renderer.triggerRareBlockEffect(data);
     UI.showRareBlockNotification(data);
+    // Play reward SFX if this is our own pickaxe's reward
+    if (GameSocket.player && data.playerName === GameSocket.player.name) {
+      UI.playSFX('reward');
+    }
   };
 
   GameSocket.onJackpotBlockSpawned = (data) => {

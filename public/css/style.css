@@ -1221,6 +1221,202 @@ body {
   box-shadow: 0 0 16px rgba(255, 50, 50, 0.3);
 }
 
+/* === Settings Panel === */
+.settings-section-label {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-of-type { border-bottom: none; }
+
+.settings-label {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: 0.3px;
+}
+.settings-desc {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+
+/* Settings Toggle Switch */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.settings-toggle input { opacity: 0; width: 0; height: 0; }
+.settings-slider {
+  position: absolute;
+  inset: 0;
+  background: hsla(0,0%,100%,0.15);
+  border-radius: 11px;
+  transition: background 0.2s;
+}
+.settings-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.settings-toggle input:checked + .settings-slider {
+  background: var(--green);
+}
+.settings-toggle input:checked + .settings-slider::before {
+  transform: translateX(18px);
+}
+
+/* Settings Volume Rows */
+.settings-volume-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-volume-row:last-of-type { border-bottom: none; }
+.settings-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.settings-volume-value {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Range Slider (retro pixel style) */
+.settings-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.settings-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--primary);
+  border: 2px solid var(--primary-foreground);
+  border-radius: 4px;
+  cursor: pointer;
+  image-rendering: pixelated;
+}
+.settings-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--primary);
+  border: 2px solid var(--primary-foreground);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Shortcut Guide */
+.shortcut-guide {
+  background: hsla(0,0%,100%,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+}
+.shortcut-row-tnt {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+.key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 11px;
+  font-family: "Courier New", monospace;
+  flex-shrink: 0;
+}
+.key-badge-tnt { color: var(--red); }
+.shortcut-name {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.shortcut-price {
+  margin-left: auto;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Shortcut Confirm Modal - TNT variant */
+.confirm-modal-title.tnt { color: hsl(0, 80%, 60%); }
+.btn-modal.btn-tnt {
+  background: var(--red);
+  color: #fff;
+}
+.btn-modal.btn-tnt:hover {
+  box-shadow: 0 0 16px hsla(0, 84%, 60%, 0.3);
+}
+.confirm-modal-text .key-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+}
+.confirm-modal-text .key-inline.tnt { color: var(--red); }
+
 @keyframes hardcorePulse {
   0%, 100% { box-shadow: 0 0 4px rgba(255, 50, 50, 0.2); }
   50% { box-shadow: 0 0 12px rgba(255, 50, 50, 0.4); }
